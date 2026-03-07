@@ -40,6 +40,12 @@ const initDb = async () => {
       WHERE public_token IS NOT NULL;
     `);
 
+    // Add payment_method column if not exists (migration)
+    await client.query(`
+      ALTER TABLE receipts
+      ADD COLUMN IF NOT EXISTS payment_method VARCHAR(10) DEFAULT 'cash';
+    `);
+
     console.log('Database initialised');
   } catch (err) {
     console.error('DB init error:', err);

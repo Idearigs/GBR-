@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getReceipts, sendRangeReport } from '../api';
+import { getReceipts, sendRangeReport, deleteReceipt } from '../api';
 import type { Receipt } from '../types';
 
 function useToast() {
@@ -95,6 +95,17 @@ export default function Dashboard() {
       toast.show(e.message || 'Failed to send report', 'error');
     } finally {
       setReportSending(false);
+    }
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Delete receipt for ${name}? This cannot be undone.`)) return;
+    try {
+      await deleteReceipt(id);
+      toast.show('Receipt deleted', 'success');
+      load();
+    } catch {
+      toast.show('Delete failed', 'error');
     }
   };
 
@@ -196,18 +207,36 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="receipt-list">
-            {receipts.map(r => (
-              <div key={r.id} className={`receipt-card ${statusBorderClass(r.status)}`} onClick={() => navigate('/manage')}>
-                <div className="receipt-card-left">
-                  <h3>{r.customer_name || '(No name)'}</h3>
-                  <p>No:{r.receipt_no} · {r.date ? new Date(r.date).toLocaleDateString('en-GB') : '—'}{(r as any).customer_phone ? ` · ${(r as any).customer_phone}` : ''}</p>
+            {receipts.map(r => {
+              const pm = (r as any).payment_method || 'cash';
+              return (
+                <div key={r.id} className={`receipt-card ${statusBorderClass(r.status)}`} style={{ flexDirection: 'column', alignItems: 'stretch', cursor: 'default' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <h3 style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.customer_name || '(No name)'}</h3>
+                      <p style={{ marginTop: 5 }}>No:{r.receipt_no} · {r.date ? new Date(r.date).toLocaleDateString('en-GB') : '—'}</p>
+                    </div>
+                    <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: 16 }}>
+                      <div className="amount">£{parseFloat(String(r.total_amount || 0)).toFixed(2)}</div>
+                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', marginTop: 6 }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700, background: pm === 'card' ? 'var(--info-pale)' : 'var(--success-pale)', color: pm === 'card' ? 'var(--info)' : 'var(--success)' }}>
+                          {pm === 'card' ? '💳' : '💵'} {pm}
+                        </span>
+                        <span className={`status-pill status-${r.status}`}>{r.status}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+                    <button className="btn btn-outline" style={{ flex: 1, minHeight: 0, padding: '10px', fontSize: 14 }} onClick={() => navigate('/manage')}>
+                      View
+                    </button>
+                    <button className="btn btn-danger" style={{ minHeight: 0, padding: '10px 16px', fontSize: 14 }} onClick={() => handleDelete(r.id, r.customer_name)}>
+                      Delete
+                    </button>
+                  </div>
                 </div>
-                <div className="receipt-card-right">
-                  <div className="amount">£{parseFloat(String(r.total_amount || 0)).toFixed(2)}</div>
-                  <span className={`status-pill status-${r.status}`}>{r.status}</span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

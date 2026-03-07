@@ -19,7 +19,11 @@ function useToast() {
 // ──────────────────────────────────────────────────────
 // Step 0 — Owner starts (auto date + receipt no)
 // ──────────────────────────────────────────────────────
-function StepStart({ date, onDateChange, onNext }: { date: string; onDateChange: (d: string) => void; onNext: () => void }) {
+function StepStart({ date, onDateChange, paymentMethod, onPaymentChange, onNext }: {
+  date: string; onDateChange: (d: string) => void;
+  paymentMethod: string; onPaymentChange: (m: string) => void;
+  onNext: () => void;
+}) {
   return (
     <div className="page" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '70vh' }}>
       <div style={{ textAlign: 'center', marginBottom: 40 }}>
@@ -31,6 +35,36 @@ function StepStart({ date, onDateChange, onNext }: { date: string; onDateChange:
       <div className="form-group">
         <label>Date</label>
         <input type="date" value={date} onChange={e => onDateChange(e.target.value)} />
+      </div>
+
+      <div className="form-group">
+        <label>Payment Method</label>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 4 }}>
+          <button
+            type="button"
+            onClick={() => onPaymentChange('cash')}
+            style={{
+              padding: '20px 16px', borderRadius: 16, border: `2.5px solid ${paymentMethod === 'cash' ? 'var(--success)' : 'var(--border)'}`,
+              background: paymentMethod === 'cash' ? 'var(--success-pale)' : 'var(--surface)',
+              cursor: 'pointer', textAlign: 'center', transition: 'all 0.15s',
+            }}
+          >
+            <div style={{ fontSize: 36, marginBottom: 8 }}>💵</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: paymentMethod === 'cash' ? 'var(--success)' : 'var(--dark)' }}>Cash</div>
+          </button>
+          <button
+            type="button"
+            onClick={() => onPaymentChange('card')}
+            style={{
+              padding: '20px 16px', borderRadius: 16, border: `2.5px solid ${paymentMethod === 'card' ? 'var(--info)' : 'var(--border)'}`,
+              background: paymentMethod === 'card' ? 'var(--info-pale)' : 'var(--surface)',
+              cursor: 'pointer', textAlign: 'center', transition: 'all 0.15s',
+            }}
+          >
+            <div style={{ fontSize: 36, marginBottom: 8 }}>💳</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: paymentMethod === 'card' ? 'var(--info)' : 'var(--dark)' }}>Card</div>
+          </button>
+        </div>
       </div>
 
       <button className="btn btn-primary btn-full btn-lg mt-24" onClick={onNext}>
@@ -645,6 +679,7 @@ export default function NewReceipt() {
   const [receiptNo, setReceiptNo] = useState('');
 
   const [date, setDate] = useState(today);
+  const [paymentMethod, setPaymentMethod] = useState('cash');
   const [customer, setCustomer] = useState({ name: '', address: '', phone: '' });
   const [idImageUrl, setIdImageUrl] = useState('');
   const [items, setItems] = useState<ReceiptItem[]>([{ qty: 1, description: '', pounds: 0, pence: 0 }]);
@@ -674,6 +709,7 @@ export default function NewReceipt() {
         total_amount: totalAmount.toFixed(2),
         signature_data: dataUrl,
         id_image_url: idImageUrl,
+        payment_method: paymentMethod,
         status: 'signed',
       };
 
@@ -705,6 +741,7 @@ export default function NewReceipt() {
         date,
         items,
         total_amount: 0,
+        payment_method: paymentMethod,
         status: 'draft',
       });
       setSavedId(data.id);
@@ -756,7 +793,7 @@ export default function NewReceipt() {
 
       {/* Steps */}
       {step === 0 && (
-        <StepStart date={date} onDateChange={setDate} onNext={() => setStep(1)} />
+        <StepStart date={date} onDateChange={setDate} paymentMethod={paymentMethod} onPaymentChange={setPaymentMethod} onNext={() => setStep(1)} />
       )}
       {step === 1 && (
         <StepCustomer

@@ -87,7 +87,7 @@ router.get('/', async (req, res) => {
     }
 
     const where = conditions.length ? ' WHERE ' + conditions.join(' AND ') : '';
-    const baseQuery = 'SELECT id, receipt_no, customer_name, customer_phone, date, total_amount, status, created_at, public_token FROM receipts' + where;
+    const baseQuery = 'SELECT id, receipt_no, customer_name, customer_phone, date, total_amount, status, created_at, public_token, payment_method FROM receipts' + where;
     const countQuery = 'SELECT COUNT(*) FROM receipts' + where;
 
     const { rows } = await pool.query(baseQuery + ' ORDER BY receipt_no DESC LIMIT $' + (params.length + 1) + ' OFFSET $' + (params.length + 2), [...params, parseInt(limit), parseInt(offset)]);
@@ -152,12 +152,12 @@ router.get('/:id', async (req, res) => {
 // POST /api/receipts  — create draft
 router.post('/', async (req, res) => {
   try {
-    const { customer_name, customer_address, customer_phone, date, items, total_amount, notes } = req.body;
+    const { customer_name, customer_address, customer_phone, date, items, total_amount, notes, payment_method } = req.body;
     const public_token = crypto.randomBytes(32).toString('hex');
 
     const { rows } = await pool.query(
-      `INSERT INTO receipts (customer_name, customer_address, customer_phone, date, items, total_amount, notes, public_token, status)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'draft') RETURNING *`,
+      `INSERT INTO receipts (customer_name, customer_address, customer_phone, date, items, total_amount, notes, public_token, status, payment_method)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'draft',$9) RETURNING *`,
       [
         customer_name || '',
         customer_address || '',
@@ -167,6 +167,7 @@ router.post('/', async (req, res) => {
         total_amount || 0,
         notes || '',
         public_token,
+        payment_method || 'cash',
       ]
     );
     const r = rows[0];
@@ -179,7 +180,7 @@ router.post('/', async (req, res) => {
 // PUT /api/receipts/:id  — update (signature, id_image, status, etc.)
 router.put('/:id', async (req, res) => {
   try {
-    const { customer_name, customer_address, customer_phone, date, items, total_amount, signature_data, id_image_url, status, notes } = req.body;
+    const { customer_name, customer_address, customer_phone, date, items, total_amount, signature_data, id_image_url, status, notes, payment_method } = req.body;
 
     const { rows } = await pool.query(
       `UPDATE receipts SET
@@ -193,8 +194,9 @@ router.put('/:id', async (req, res) => {
         id_image_url = COALESCE($8, id_image_url),
         status = COALESCE($9, status),
         notes = COALESCE($10, notes),
+        payment_method = COALESCE($11, payment_method),
         updated_at = NOW()
-       WHERE id = $11 RETURNING *`,
+       WHERE id = $12 RETURNING *`,
       [
         customer_name,
         customer_address,
@@ -206,6 +208,7 @@ router.put('/:id', async (req, res) => {
         id_image_url,
         status,
         notes,
+        payment_method,
         req.params.id,
       ]
     );
