@@ -235,8 +235,10 @@ router.post('/:id/send-sms', async (req, res) => {
     if (toNumber.startsWith('+')) toNumber = toNumber.slice(1);
     const toInt = parseInt(toNumber, 10);
 
+    console.log('[VoodooSMS] to:', toInt, '| key set:', !!process.env.VOODOO_API_KEY, '| url:', publicUrl);
+
     if (!process.env.VOODOO_API_KEY) {
-      // No SMS configured — just return the link
+      console.warn('[VoodooSMS] VOODOO_API_KEY not set — skipping SMS');
       return res.json({ success: true, link: publicUrl, sms_sent: false });
     }
 
