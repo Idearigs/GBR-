@@ -63,6 +63,8 @@ export default function Dashboard() {
   };
 
   const [monthTotal, setMonthTotal] = useState(0);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
   useEffect(() => { loadMonthStats().then(setMonthTotal); }, []);
 
   const logout = () => {
@@ -98,36 +100,41 @@ export default function Dashboard() {
     }
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Delete receipt for ${name}? This cannot be undone.`)) return;
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
     try {
-      await deleteReceipt(id);
+      await deleteReceipt(deleteTarget.id);
       toast.show('Receipt deleted', 'success');
+      setDeleteTarget(null);
       load();
     } catch {
       toast.show('Delete failed', 'error');
+    } finally {
+      setDeleting(false);
     }
   };
 
   const clearFilter = () => { setDateFrom(''); setDateTo(''); };
   const isFiltered = dateFrom || dateTo;
-  const statusBorderClass = (s: string) => `status-border-${s}`;
 
   return (
     <div className="app-shell">
+      {/* Nav Bar */}
       <div className="topbar">
         <h1>McCulloch — GBR</h1>
         <div className="topbar-actions">
-          <button className="btn btn-ghost" style={{ minHeight: 0, padding: '7px 14px', fontSize: 15, fontWeight: 600 }} onClick={() => navigate('/manage')}>
+          <button className="btn btn-ghost" style={{ minHeight: 0, padding: '6px 14px', fontSize: 15, fontWeight: 600 }} onClick={() => navigate('/manage')}>
             All Receipts
           </button>
-          <button className="btn btn-ghost" style={{ minHeight: 0, padding: '7px 10px', fontSize: 15, color: 'var(--danger)' }} onClick={logout}>
+          <button className="btn btn-ghost" style={{ minHeight: 0, padding: '6px 10px', fontSize: 15, color: 'var(--danger)' }} onClick={logout}>
             Logout
           </button>
         </div>
       </div>
 
       <div className="page">
+
         {/* Stat Cards */}
         <div className="dashboard-stats">
           <div className="stat-card stat-card-navy">
@@ -147,13 +154,14 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* New Receipt */}
+        {/* New Receipt CTA */}
         <button className="btn btn-primary btn-full btn-lg mb-20" onClick={() => navigate('/new')}>
           + New Gold Buying Receipt
         </button>
 
-        {/* Date Filter + Actions */}
+        {/* Filter & Export Card */}
         <div className="dashboard-filter">
+          <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--grey)', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 12 }}>Filter & Export</p>
           <div className="dashboard-filter-row">
             <div className="filter-date-group">
               <label>From</label>
@@ -164,36 +172,32 @@ export default function Dashboard() {
               <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
             </div>
             {isFiltered && (
-              <button className="btn btn-ghost" style={{ minHeight: 0, padding: '10px 12px', fontSize: 14, alignSelf: 'flex-end', color: 'var(--danger)' }} onClick={clearFilter}>
+              <button className="btn btn-ghost" style={{ minHeight: 0, padding: '10px 8px', fontSize: 14, alignSelf: 'flex-end', color: 'var(--danger)', fontWeight: 600 }} onClick={clearFilter}>
                 Clear
               </button>
             )}
           </div>
-          <div className="filter-actions">
-            <button className="btn btn-outline" style={{ flex: 1, minHeight: 0, padding: '12px', fontSize: 15 }} onClick={handleExportCSV}>
-              ⬇ Export CSV
-            </button>
-            <button
-              className="btn btn-navy"
-              style={{ flex: 1, minHeight: 0, padding: '12px', fontSize: 15 }}
-              onClick={() => { setReportFrom(dateFrom); setReportTo(dateTo); setShowReportModal(true); }}
-            >
-              📧 Email Report
-            </button>
-          </div>
           {isFiltered && (
-            <div style={{ marginTop: 12, padding: '10px 14px', background: 'var(--gold-pale)', borderRadius: 10, fontSize: 14, color: '#92400E', fontWeight: 600 }}>
-              {receipts.length} receipts · £{filteredTotal.toFixed(2)} in selected period
+            <div style={{ margin: '12px 0 0', padding: '10px 14px', background: 'var(--gold-pale)', borderRadius: 10, fontSize: 14, color: '#92400E', fontWeight: 600 }}>
+              {receipts.length} receipts · £{filteredTotal.toFixed(2)} in period
             </div>
           )}
+          <div className="filter-actions">
+            <button className="btn btn-outline" style={{ flex: 1, minHeight: 0, padding: '13px', fontSize: 15 }} onClick={handleExportCSV}>
+              ↓ Export CSV
+            </button>
+            <button className="btn btn-navy" style={{ flex: 1, minHeight: 0, padding: '13px', fontSize: 15 }} onClick={() => { setReportFrom(dateFrom); setReportTo(dateTo); setShowReportModal(true); }}>
+              ✉ Email Report
+            </button>
+          </div>
         </div>
 
-        {/* Receipt List */}
+        {/* Receipt List Header */}
         <div className="flex-between mb-12">
-          <h2 style={{ fontSize: 13, fontWeight: 700, color: 'var(--grey)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--grey)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
             {isFiltered ? 'Filtered Receipts' : 'Recent Receipts'}
-          </h2>
-          <button className="btn btn-ghost" style={{ padding: '4px 0', fontSize: 15, minHeight: 0 }} onClick={() => navigate('/manage')}>
+          </span>
+          <button className="btn btn-ghost" style={{ padding: '4px 0', fontSize: 15, minHeight: 0, fontWeight: 600 }} onClick={() => navigate('/manage')}>
             See All
           </button>
         </div>
@@ -201,38 +205,57 @@ export default function Dashboard() {
         {loading ? (
           <div className="spinner" />
         ) : receipts.length === 0 ? (
-          <div className="text-center" style={{ padding: 48, color: 'var(--grey)' }}>
-            <div style={{ fontSize: 44, marginBottom: 12 }}>📋</div>
-            <p style={{ fontSize: 16 }}>{isFiltered ? 'No receipts in this date range.' : 'No receipts yet. Create your first one!'}</p>
+          <div className="text-center" style={{ padding: 56, color: 'var(--grey)' }}>
+            <div style={{ fontSize: 48, marginBottom: 14 }}>📋</div>
+            <p style={{ fontSize: 17, fontWeight: 500 }}>{isFiltered ? 'No receipts in this range.' : 'No receipts yet.'}</p>
+            <p style={{ fontSize: 14, marginTop: 6, color: 'var(--grey2)' }}>Tap + New to create one</p>
           </div>
         ) : (
           <div className="receipt-list">
             {receipts.map(r => {
               const pm = (r as any).payment_method || 'cash';
+              const isCard = pm === 'card';
               return (
-                <div key={r.id} className={`receipt-card ${statusBorderClass(r.status)}`} style={{ flexDirection: 'column', alignItems: 'stretch', cursor: 'default' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div key={r.id} className="dash-receipt-card">
+                  {/* Top row */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <h3 style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.customer_name || '(No name)'}</h3>
-                      <p style={{ marginTop: 5 }}>No:{r.receipt_no} · {r.date ? new Date(r.date).toLocaleDateString('en-GB') : '—'}</p>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--dark)', letterSpacing: '-0.3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {r.customer_name || '(No name)'}
+                      </div>
+                      <div style={{ fontSize: 13, color: 'var(--grey)', marginTop: 4 }}>
+                        No:{r.receipt_no} &nbsp;·&nbsp; {r.date ? new Date(r.date).toLocaleDateString('en-GB') : '—'}
+                      </div>
                     </div>
-                    <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: 16 }}>
-                      <div className="amount">£{parseFloat(String(r.total_amount || 0)).toFixed(2)}</div>
-                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', marginTop: 6 }}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700, background: pm === 'card' ? 'var(--info-pale)' : 'var(--success-pale)', color: pm === 'card' ? 'var(--info)' : 'var(--success)' }}>
-                          {pm === 'card' ? '💳' : '💵'} {pm}
-                        </span>
-                        <span className={`status-pill status-${r.status}`}>{r.status}</span>
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--dark)', letterSpacing: '-1px', lineHeight: 1 }}>
+                        £{parseFloat(String(r.total_amount || 0)).toFixed(2)}
                       </div>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: 8, marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
-                    <button className="btn btn-outline" style={{ flex: 1, minHeight: 0, padding: '10px', fontSize: 14 }} onClick={() => navigate('/manage')}>
-                      View
-                    </button>
-                    <button className="btn btn-danger" style={{ minHeight: 0, padding: '10px 16px', fontSize: 14 }} onClick={() => handleDelete(r.id, r.customer_name)}>
-                      Delete
-                    </button>
+
+                  {/* Bottom row — badges + actions */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 }}>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 20, fontSize: 13, fontWeight: 600, background: isCard ? '#E8F0FE' : '#E6F9EE', color: isCard ? '#1a56db' : '#166534' }}>
+                        {isCard ? '💳' : '💵'} {isCard ? 'Card' : 'Cash'}
+                      </span>
+                      <span className={`status-pill status-${r.status}`} style={{ fontSize: 13, padding: '5px 12px' }}>{r.status}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button
+                        style={{ background: 'var(--light)', border: 'none', borderRadius: 10, padding: '8px 16px', fontSize: 14, fontWeight: 600, color: 'var(--info)', cursor: 'pointer' }}
+                        onClick={() => navigate('/manage')}
+                      >
+                        View
+                      </button>
+                      <button
+                        style={{ background: '#FFF0EE', border: 'none', borderRadius: 10, padding: '8px 14px', fontSize: 18, cursor: 'pointer' }}
+                        onClick={() => setDeleteTarget({ id: r.id, name: r.customer_name })}
+                      >
+                        🗑
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -241,16 +264,50 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Report Modal */}
+      {/* Delete Confirmation Modal */}
+      {deleteTarget && (
+        <div className="modal-overlay" onClick={() => setDeleteTarget(null)}>
+          <div className="modal-card" onClick={e => e.stopPropagation()} style={{ borderRadius: 20, padding: '28px 24px 24px' }}>
+            <div style={{ textAlign: 'center', marginBottom: 20 }}>
+              <div style={{ fontSize: 48, marginBottom: 12 }}>🗑️</div>
+              <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Delete Receipt?</h3>
+              <p style={{ fontSize: 15, color: 'var(--grey)', lineHeight: 1.5 }}>
+                This will permanently delete the receipt for<br />
+                <strong style={{ color: 'var(--dark)' }}>{deleteTarget.name || '(No name)'}</strong>.<br />
+                This action cannot be undone.
+              </p>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button
+                className="btn btn-danger btn-full"
+                style={{ fontSize: 17, minHeight: 56 }}
+                onClick={confirmDelete}
+                disabled={deleting}
+              >
+                {deleting ? 'Deleting...' : 'Delete Receipt'}
+              </button>
+              <button
+                className="btn btn-outline btn-full"
+                style={{ fontSize: 17, minHeight: 52, color: 'var(--info)', borderColor: 'transparent', background: 'var(--light)' }}
+                onClick={() => setDeleteTarget(null)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Email Report Modal */}
       {showReportModal && (
         <div className="modal-overlay" onClick={() => setShowReportModal(false)}>
           <div className="modal-card" onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
               <div>
                 <h3>Email Report</h3>
-                <p>Select a date range and send a report to your email.</p>
+                <p>Select a date range and send to your email.</p>
               </div>
-              <button className="btn btn-ghost" style={{ minHeight: 0, padding: '4px 8px' }} onClick={() => setShowReportModal(false)}>✕</button>
+              <button className="btn btn-ghost" style={{ minHeight: 0, padding: '4px 8px', fontSize: 18 }} onClick={() => setShowReportModal(false)}>✕</button>
             </div>
             <div className="form-group">
               <label>From Date</label>
@@ -260,13 +317,8 @@ export default function Dashboard() {
               <label>To Date</label>
               <input type="date" value={reportTo} onChange={e => setReportTo(e.target.value)} style={{ fontSize: 16 }} />
             </div>
-            <button
-              className="btn btn-primary btn-full"
-              style={{ marginTop: 8 }}
-              onClick={handleSendReport}
-              disabled={reportSending || !reportFrom || !reportTo}
-            >
-              {reportSending ? 'Sending...' : '📧 Send Report'}
+            <button className="btn btn-primary btn-full" style={{ marginTop: 8, minHeight: 56, fontSize: 17 }} onClick={handleSendReport} disabled={reportSending || !reportFrom || !reportTo}>
+              {reportSending ? 'Sending...' : '✉ Send Report'}
             </button>
           </div>
         </div>
