@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getReceipts, deleteReceipt, sendReport } from '../api';
+import { getReceipts, deleteReceipt, sendReport, getReceipt } from '../api';
 import type { Receipt } from '../types';
 
 function useToast() {
@@ -18,6 +18,7 @@ export default function ManageReceipts() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [reportSending, setReportSending] = useState(false);
+  const [idModal, setIdModal] = useState<{ url: string; name: string } | null>(null);
   const toast = useToast();
 
   useEffect(() => { load(); }, [page, search]);
@@ -32,6 +33,19 @@ export default function ManageReceipts() {
       toast.show(e.message, 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleViewId = async (id: string, name: string) => {
+    try {
+      const data = await getReceipt(id);
+      if (data.id_image_url) {
+        setIdModal({ url: data.id_image_url, name });
+      } else {
+        toast.show('No ID photo for this receipt', 'error');
+      }
+    } catch {
+      toast.show('Failed to load ID photo', 'error');
     }
   };
 
@@ -156,6 +170,13 @@ export default function ManageReceipts() {
                   <button
                     className="btn btn-outline"
                     style={{ flex: 1, padding: '8px 12px', fontSize: 13, minHeight: 0 }}
+                    onClick={() => handleViewId(r.id, r.customer_name)}
+                  >
+                    ID Photo
+                  </button>
+                  <button
+                    className="btn btn-outline"
+                    style={{ flex: 1, padding: '8px 12px', fontSize: 13, minHeight: 0 }}
                     onClick={() => {
                       const link = `${window.location.origin}/r/${(r as any).public_token}`;
                       navigator.clipboard?.writeText(link);
@@ -192,6 +213,21 @@ export default function ManageReceipts() {
       </div>
 
       {toast.msg && <div className={`toast ${toast.type}`}>{toast.msg}</div>}
+
+      {idModal && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 1000, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+          onClick={() => setIdModal(null)}
+        >
+          <div style={{ background: '#fff', borderRadius: 16, padding: 20, maxWidth: 500, width: '100%' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700 }}>ID Photo — {idModal.name}</h3>
+              <button className="btn btn-ghost" style={{ minHeight: 0, padding: '4px 10px' }} onClick={() => setIdModal(null)}>✕</button>
+            </div>
+            <img src={idModal.url} alt="Customer ID" style={{ width: '100%', borderRadius: 8, border: '1px solid var(--border)' }} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
