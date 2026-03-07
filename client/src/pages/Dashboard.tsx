@@ -107,10 +107,10 @@ export default function Dashboard() {
       <div className="topbar">
         <h1>McCulloch — GBR</h1>
         <div className="topbar-actions">
-          <button className="btn btn-outline" style={{ color: '#cbd5e1', borderColor: '#475569', minHeight: 0, padding: '7px 14px', fontSize: 13 }} onClick={() => navigate('/manage')}>
+          <button className="btn btn-ghost" style={{ minHeight: 0, padding: '7px 14px', fontSize: 15, fontWeight: 600 }} onClick={() => navigate('/manage')}>
             All Receipts
           </button>
-          <button className="btn btn-ghost" style={{ color: '#94a3b8', minHeight: 0, padding: '7px 10px', fontSize: 13 }} onClick={logout}>
+          <button className="btn btn-ghost" style={{ minHeight: 0, padding: '7px 10px', fontSize: 15, color: 'var(--danger)' }} onClick={logout}>
             Logout
           </button>
         </div>
@@ -120,24 +120,24 @@ export default function Dashboard() {
         {/* Stat Cards */}
         <div className="dashboard-stats">
           <div className="stat-card stat-card-navy">
-            <div className="stat-icon">🧾</div>
+            <div className="stat-icon-wrap">🧾</div>
             <div className="stat-value">{allCount}</div>
-            <div className="stat-label">Total Receipts</div>
+            <div className="stat-label">Receipts</div>
           </div>
           <div className="stat-card stat-card-gold">
-            <div className="stat-icon">💷</div>
+            <div className="stat-icon-wrap">💷</div>
             <div className="stat-value">£{allTotal.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
             <div className="stat-label">Total Value</div>
           </div>
           <div className="stat-card stat-card-green">
-            <div className="stat-icon">📅</div>
+            <div className="stat-icon-wrap">📅</div>
             <div className="stat-value">£{monthTotal.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
             <div className="stat-label">This Month</div>
           </div>
         </div>
 
         {/* New Receipt */}
-        <button className="btn btn-primary btn-full btn-lg mb-20" style={{ fontSize: 18 }} onClick={() => navigate('/new')}>
+        <button className="btn btn-primary btn-full btn-lg mb-20" onClick={() => navigate('/new')}>
           + New Gold Buying Receipt
         </button>
 
@@ -153,37 +153,37 @@ export default function Dashboard() {
               <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
             </div>
             {isFiltered && (
-              <button className="btn btn-ghost" style={{ minHeight: 0, padding: '8px 10px', fontSize: 13, alignSelf: 'flex-end' }} onClick={clearFilter}>
-                ✕ Clear
+              <button className="btn btn-ghost" style={{ minHeight: 0, padding: '10px 12px', fontSize: 14, alignSelf: 'flex-end', color: 'var(--danger)' }} onClick={clearFilter}>
+                Clear
               </button>
             )}
           </div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-            <button className="btn btn-outline" style={{ flex: 1, minHeight: 0, padding: '10px 12px', fontSize: 13 }} onClick={handleExportCSV}>
+          <div className="filter-actions">
+            <button className="btn btn-outline" style={{ flex: 1, minHeight: 0, padding: '12px', fontSize: 15 }} onClick={handleExportCSV}>
               ⬇ Export CSV
             </button>
             <button
               className="btn btn-navy"
-              style={{ flex: 1, minHeight: 0, padding: '10px 12px', fontSize: 13 }}
+              style={{ flex: 1, minHeight: 0, padding: '12px', fontSize: 15 }}
               onClick={() => { setReportFrom(dateFrom); setReportTo(dateTo); setShowReportModal(true); }}
             >
               📧 Email Report
             </button>
           </div>
           {isFiltered && (
-            <div style={{ marginTop: 10, padding: '8px 12px', background: 'var(--gold-pale)', borderRadius: 8, fontSize: 13, color: '#92400E', fontWeight: 600 }}>
-              {receipts.length} receipts · £{filteredTotal.toFixed(2)} total in selected period
+            <div style={{ marginTop: 12, padding: '10px 14px', background: 'var(--gold-pale)', borderRadius: 10, fontSize: 14, color: '#92400E', fontWeight: 600 }}>
+              {receipts.length} receipts · £{filteredTotal.toFixed(2)} in selected period
             </div>
           )}
         </div>
 
         {/* Receipt List */}
         <div className="flex-between mb-12">
-          <h2 style={{ fontSize: 15, fontWeight: 700, color: 'var(--grey)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+          <h2 style={{ fontSize: 13, fontWeight: 700, color: 'var(--grey)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
             {isFiltered ? 'Filtered Receipts' : 'Recent Receipts'}
           </h2>
-          <button className="btn btn-ghost" style={{ padding: '4px 10px', fontSize: 13, color: 'var(--gold)' }} onClick={() => navigate('/manage')}>
-            View all →
+          <button className="btn btn-ghost" style={{ padding: '4px 0', fontSize: 15, minHeight: 0 }} onClick={() => navigate('/manage')}>
+            See All
           </button>
         </div>
 

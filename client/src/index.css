@@ -1,32 +1,36 @@
 /* McCulloch GBR — Gold Buying Receipt Manager */
-/* Optimised for tablet (Android, 10"–12") */
+/* Apple iOS Design Language */
 
 :root {
   --gold: #B8860B;
   --gold-light: #D4AF37;
-  --gold-pale: #FBF3DC;
-  --navy: #1E293B;
-  --dark: #1C1917;
-  --grey: #78716C;
-  --light: #F7F5F0;
+  --gold-pale: #FFF8E7;
+  --navy: #1C1C1E;
+  --dark: #1C1C1E;
+  --grey: #8E8E93;
+  --grey2: #AEAEB2;
+  --light: #F2F2F7;
   --surface: #FFFFFF;
-  --border: #E5E0D8;
-  --danger: #DC2626;
-  --danger-pale: #FEF2F2;
-  --success: #059669;
-  --success-pale: #ECFDF5;
-  --info: #0284C7;
-  --info-pale: #EFF6FF;
-  --radius: 12px;
-  --shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.06);
-  --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 10px 30px rgba(0,0,0,0.08);
+  --border: rgba(60,60,67,0.13);
+  --danger: #FF3B30;
+  --danger-pale: #FFF2F0;
+  --success: #34C759;
+  --success-pale: #F0FFF4;
+  --info: #007AFF;
+  --info-pale: #F0F7FF;
+  --purple: #5856D6;
+  --orange: #FF9500;
+  --radius: 14px;
+  --radius-lg: 20px;
+  --shadow: 0 2px 8px rgba(0,0,0,0.08), 0 0 1px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 20px rgba(0,0,0,0.1), 0 1px 4px rgba(0,0,0,0.06);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
 html, body, #root {
   height: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: -apple-system, 'SF Pro Display', 'SF Pro Text', BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: var(--light);
   color: var(--dark);
   -webkit-font-smoothing: antialiased;
@@ -36,21 +40,22 @@ html, body, #root {
 .app-shell { display: flex; flex-direction: column; height: 100dvh; }
 
 .topbar {
-  background: var(--navy);
-  color: #fff;
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 20px;
+  padding: 16px 20px;
   flex-shrink: 0;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
 }
-.topbar h1 { font-size: 17px; font-weight: 700; color: var(--gold-light); letter-spacing: 0.3px; }
+.topbar h1 { font-size: 18px; font-weight: 700; color: var(--dark); letter-spacing: -0.3px; }
 .topbar-actions { display: flex; gap: 8px; }
 
 .page { flex: 1; overflow-y: auto; padding: 24px 20px; }
 
-/* ── Buttons ─────────────────────────────────────────── */
+/* ── Buttons (iOS style) ─────────────────────────────── */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -58,26 +63,28 @@ html, body, #root {
   gap: 8px;
   border: none;
   border-radius: var(--radius);
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 600;
   cursor: pointer;
   padding: 14px 24px;
-  transition: opacity 0.15s, transform 0.1s;
+  transition: opacity 0.15s, transform 0.08s;
   text-decoration: none;
   min-height: 52px;
+  letter-spacing: -0.2px;
 }
-.btn:active { transform: scale(0.97); opacity: 0.85; }
-.btn-primary { background: var(--gold); color: #fff; }
-.btn-navy { background: var(--navy); color: #fff; }
+.btn:active { transform: scale(0.96); opacity: 0.8; }
+.btn-primary { background: var(--info); color: #fff; }
+.btn-gold { background: var(--gold); color: #fff; }
+.btn-navy { background: var(--dark); color: #fff; }
 .btn-dark { background: var(--dark); color: #fff; }
 .btn-outline { background: var(--surface); border: 1.5px solid var(--border); color: var(--dark); }
-.btn-outline:hover { border-color: var(--gold); }
+.btn-outline:hover { background: var(--light); }
 .btn-danger { background: var(--danger); color: #fff; }
 .btn-success { background: var(--success); color: #fff; }
-.btn-ghost { background: transparent; color: var(--grey); font-weight: 400; }
-.btn-lg { font-size: 20px; padding: 18px 32px; min-height: 64px; border-radius: 14px; }
+.btn-ghost { background: transparent; color: var(--info); font-weight: 500; }
+.btn-lg { font-size: 19px; padding: 18px 32px; min-height: 60px; border-radius: var(--radius-lg); }
 .btn-full { width: 100%; }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* ── Forms ─────────────────────────────────────────── */
 label { display: block; font-size: 13px; font-weight: 600; color: var(--grey); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -237,46 +244,45 @@ textarea { resize: vertical; min-height: 100px; }
 .receipt-sig-line { border-bottom: 1px solid #333; margin: 8px 0; height: 60px; display: flex; align-items: flex-end; }
 .receipt-sig-line img { max-height: 55px; }
 
-/* ── Dashboard ─────────────────────────────────────── */
-.dashboard-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 24px; }
-.stat-card { border-radius: var(--radius); padding: 18px 20px; position: relative; overflow: hidden; }
-.stat-card-navy { background: linear-gradient(135deg, #1E293B 0%, #334155 100%); color: #fff; }
-.stat-card-gold { background: linear-gradient(135deg, #92600A 0%, #B8860B 100%); color: #fff; }
-.stat-card-green { background: linear-gradient(135deg, #065F46 0%, #059669 100%); color: #fff; }
-.stat-card .stat-icon { font-size: 28px; margin-bottom: 8px; opacity: 0.9; }
-.stat-card .stat-value { font-size: 26px; font-weight: 800; color: #fff; line-height: 1; }
-.stat-card .stat-label { font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 5px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
-.stat-card .stat-sub { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+/* ── Dashboard (iOS) ───────────────────────────────── */
+.dashboard-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+.stat-card { border-radius: var(--radius-lg); padding: 22px 18px; position: relative; overflow: hidden; cursor: default; }
+.stat-card-navy { background: linear-gradient(145deg, #1C1C1E 0%, #3A3A3C 100%); }
+.stat-card-gold  { background: linear-gradient(145deg, #92600A 0%, #C9950C 100%); }
+.stat-card-green { background: linear-gradient(145deg, #1E7A3C 0%, #34C759 100%); }
+.stat-card .stat-icon-wrap { width: 44px; height: 44px; border-radius: 12px; background: rgba(255,255,255,0.18); display: flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 14px; }
+.stat-card .stat-value { font-size: 30px; font-weight: 800; color: #fff; line-height: 1; letter-spacing: -1px; }
+.stat-card .stat-label { font-size: 12px; color: rgba(255,255,255,0.65); margin-top: 6px; font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase; }
 
-.dashboard-filter { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 20px; box-shadow: var(--shadow); }
-.dashboard-filter-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-.dashboard-filter label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--grey); margin-bottom: 4px; }
+.dashboard-filter { background: var(--surface); border-radius: var(--radius-lg); padding: 18px 18px 14px; margin-bottom: 20px; box-shadow: var(--shadow); }
+.dashboard-filter-row { display: flex; gap: 12px; align-items: flex-end; }
+.dashboard-filter label { font-size: 12px; font-weight: 600; color: var(--grey); margin-bottom: 6px; letter-spacing: 0.3px; }
 .filter-date-group { display: flex; flex-direction: column; flex: 1; min-width: 130px; }
-.filter-date-group input { padding: 8px 12px; font-size: 14px; border: 1.5px solid var(--border); border-radius: 8px; background: var(--light); color: var(--dark); }
-.filter-date-group input:focus { border-color: var(--gold); outline: none; }
+.filter-date-group input { padding: 10px 14px; font-size: 15px; border: 1.5px solid var(--border); border-radius: 10px; background: var(--light); color: var(--dark); font-family: inherit; }
+.filter-date-group input:focus { border-color: var(--info); outline: none; background: #fff; }
+.filter-actions { display: flex; gap: 10px; margin-top: 14px; }
 
-.receipt-list { display: flex; flex-direction: column; gap: 10px; }
-.receipt-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; box-shadow: var(--shadow); border-left: 4px solid var(--border); transition: box-shadow 0.15s, border-color 0.15s; }
-.receipt-card:hover { box-shadow: var(--shadow-md); border-left-color: var(--gold); }
-.receipt-card.status-border-signed { border-left-color: var(--info); }
-.receipt-card.status-border-printed { border-left-color: var(--success); }
-.receipt-card.status-border-sent { border-left-color: #7C3AED; }
-.receipt-card.status-border-draft { border-left-color: #D97706; }
-.receipt-card-left h3 { font-size: 16px; font-weight: 700; }
-.receipt-card-left p { font-size: 13px; color: var(--grey); margin-top: 3px; }
-.receipt-card-right { text-align: right; }
-.receipt-card-right .amount { font-size: 20px; font-weight: 800; color: var(--dark); }
-.receipt-card-right .status-pill { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; margin-top: 4px; }
-.status-draft { background: #FEF3C7; color: #92400E; }
-.status-signed { background: var(--info-pale); color: #1D4ED8; }
-.status-printed { background: var(--success-pale); color: #065F46; }
-.status-sent { background: #F3E8FF; color: #6D28D9; }
+.receipt-list { display: flex; flex-direction: column; gap: 1px; background: var(--border); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow); }
+.receipt-card { background: var(--surface); padding: 18px 20px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.1s; border-left: none; border-radius: 0; border: none; box-shadow: none; }
+.receipt-card:first-child { border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+.receipt-card:last-child { border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+.receipt-card:only-child { border-radius: var(--radius-lg); }
+.receipt-card:active { background: var(--light); }
+.receipt-card-left h3 { font-size: 17px; font-weight: 600; letter-spacing: -0.2px; }
+.receipt-card-left p { font-size: 14px; color: var(--grey); margin-top: 4px; }
+.receipt-card-right { text-align: right; flex-shrink: 0; margin-left: 12px; }
+.receipt-card-right .amount { font-size: 20px; font-weight: 700; color: var(--dark); letter-spacing: -0.5px; }
+.receipt-card-right .status-pill { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; margin-top: 5px; }
+.status-draft  { background: #FFF3E0; color: #E65100; }
+.status-signed { background: #E3F2FD; color: #1565C0; }
+.status-printed { background: #E8F5E9; color: #1B5E20; }
+.status-sent   { background: #F3E5F5; color: #6A1B9A; }
 
-/* ── Report Modal ─────────────────────────────────── */
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(2px); }
-.modal-card { background: var(--surface); border-radius: 16px; padding: 28px; width: 100%; max-width: 440px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
-.modal-card h3 { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
-.modal-card p { font-size: 14px; color: var(--grey); margin-bottom: 20px; }
+/* ── iOS Modal ────────────────────────────────────── */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; display: flex; align-items: flex-end; justify-content: center; padding: 0; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+.modal-card { background: var(--surface); border-radius: 20px 20px 0 0; padding: 28px 24px 40px; width: 100%; max-width: 600px; box-shadow: 0 -4px 40px rgba(0,0,0,0.15); }
+.modal-card h3 { font-size: 20px; font-weight: 700; margin-bottom: 4px; letter-spacing: -0.3px; }
+.modal-card p { font-size: 15px; color: var(--grey); margin-bottom: 24px; }
 
 /* ── Login ─────────────────────────────────────────── */
 .login-screen {
