@@ -104,3 +104,14 @@ export const sendReport = async () => {
   if (!r.ok) throw new Error(data.error);
   return data;
 };
+
+export const sendRangeReport = async (from: string, to: string) => {
+  const r = await fetch(`${BASE}/reports/send-range`, {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ from, to }),
+  });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error);
+  return data;
+};

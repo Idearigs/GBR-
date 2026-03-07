@@ -64,25 +64,34 @@ router.get('/id-image/:filename', (req, res) => {
 // All routes below require auth
 router.use(requireAuth);
 
-// GET /api/receipts  — list all
+// GET /api/receipts  — list all (supports search, date_from, date_to)
 router.get('/', async (req, res) => {
   try {
-    const { page = 1, limit = 50, search = '' } = req.query;
+    const { page = 1, limit = 50, search = '', date_from = '', date_to = '' } = req.query;
     const offset = (page - 1) * limit;
 
-    let query = 'SELECT id, receipt_no, customer_name, customer_phone, date, total_amount, status, created_at, public_token FROM receipts';
+    const conditions = [];
     const params = [];
 
     if (search) {
-      query += ' WHERE customer_name ILIKE $1 OR CAST(receipt_no AS TEXT) LIKE $2';
+      conditions.push(`(customer_name ILIKE $${params.length + 1} OR CAST(receipt_no AS TEXT) LIKE $${params.length + 2})`);
       params.push(`%${search}%`, `%${search}%`);
     }
+    if (date_from) {
+      conditions.push(`date >= $${params.length + 1}`);
+      params.push(date_from);
+    }
+    if (date_to) {
+      conditions.push(`date <= $${params.length + 1}`);
+      params.push(date_to);
+    }
 
-    query += ' ORDER BY receipt_no DESC LIMIT $' + (params.length + 1) + ' OFFSET $' + (params.length + 2);
-    params.push(parseInt(limit), parseInt(offset));
+    const where = conditions.length ? ' WHERE ' + conditions.join(' AND ') : '';
+    const baseQuery = 'SELECT id, receipt_no, customer_name, customer_phone, date, total_amount, status, created_at, public_token FROM receipts' + where;
+    const countQuery = 'SELECT COUNT(*) FROM receipts' + where;
 
-    const { rows } = await pool.query(query, params);
-    const countResult = await pool.query('SELECT COUNT(*) FROM receipts' + (search ? ' WHERE customer_name ILIKE $1 OR CAST(receipt_no AS TEXT) LIKE $2' : ''), search ? [`%${search}%`, `%${search}%`] : []);
+    const { rows } = await pool.query(baseQuery + ' ORDER BY receipt_no DESC LIMIT $' + (params.length + 1) + ' OFFSET $' + (params.length + 2), [...params, parseInt(limit), parseInt(offset)]);
+    const countResult = await pool.query(countQuery, params);
 
     res.json({
       receipts: rows.map(r => ({ ...r, receipt_no: padReceiptNo(r.receipt_no) })),
@@ -94,10 +103,16 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/receipts/export  — CSV export
+// GET /api/receipts/export  — CSV export (supports date_from, date_to)
 router.get('/export', async (req, res) => {
   try {
-    const { rows } = await pool.query('SELECT * FROM receipts ORDER BY receipt_no ASC');
+    const { date_from = '', date_to = '' } = req.query;
+    const conditions = [];
+    const params = [];
+    if (date_from) { conditions.push(`date >= $${params.length + 1}`); params.push(date_from); }
+    if (date_to) { conditions.push(`date <= $${params.length + 1}`); params.push(date_to); }
+    const where = conditions.length ? ' WHERE ' + conditions.join(' AND ') : '';
+    const { rows } = await pool.query('SELECT * FROM receipts' + where + ' ORDER BY receipt_no ASC', params);
     const headers = ['Receipt No', 'Date', 'Customer Name', 'Address', 'Phone', 'Items', 'Total (£)', 'Status'];
     const csvRows = rows.map(r => [
       padReceiptNo(r.receipt_no),
