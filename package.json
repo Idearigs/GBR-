@@ -17,7 +17,6 @@
     "node-cron": "^3.0.3",
     "nodemailer": "^6.9.13",
     "pg": "^8.11.3",
-    "twilio": "^5.9.3",
     "uuid": "^9.0.1"
   },
   "devDependencies": {

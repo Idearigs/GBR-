@@ -229,18 +229,38 @@ router.post('/:id/send-sms', async (req, res) => {
 
     const r = rows[0];
     const publicUrl = `${process.env.APP_URL}/r/${r.public_token}`;
+    const toNumber = (phone || r.customer_phone || '').replace(/\s+/g, '');
 
-    if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
-      // No Twilio — just return the link
+    if (!process.env.VOODOO_API_KEY) {
+      // No SMS configured — just return the link
       return res.json({ success: true, link: publicUrl, sms_sent: false });
     }
 
-    const twilio = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-    await twilio.messages.create({
-      body: `Andrew McCulloch Jewellers — Your receipt No:${padReceiptNo(r.receipt_no)}. View it here: ${publicUrl}`,
-      from: process.env.TWILIO_FROM_NUMBER,
-      to: phone || r.customer_phone,
+    if (!toNumber) {
+      return res.status(400).json({ error: 'No phone number provided' });
+    }
+
+    const message = `Andrew McCulloch Jewellers - Receipt No:${padReceiptNo(r.receipt_no)}. View: ${publicUrl}`;
+
+    const smsRes = await fetch('https://www.voodoosms.com/vapi/sms/send', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.VOODOO_API_KEY}`,
+      },
+      body: JSON.stringify({
+        to: toNumber,
+        from: process.env.VOODOO_SENDER || 'McCulloch',
+        msg: message,
+      }),
     });
+
+    const smsData = await smsRes.json();
+
+    if (!smsRes.ok || smsData.result !== 'success') {
+      console.error('[VoodooSMS] error:', smsData);
+      return res.status(502).json({ error: smsData.message || smsData.result || 'SMS send failed' });
+    }
 
     await pool.query('UPDATE receipts SET sms_sent_at = NOW(), status = $1 WHERE id = $2', ['sent', req.params.id]);
     res.json({ success: true, link: publicUrl, sms_sent: true });
