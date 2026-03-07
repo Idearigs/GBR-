@@ -1,0 +1,17 @@
+name: Deploy to Development
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Coolify Dev Deployment
+        run: |
+          curl --fail -X POST \
+            "https://coolify.buymediamonds.co.uk/api/v1/deploy?uuid=${{ secrets.COOLIFY_DEV_APP_UUID }}&force=false" \
+            -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
+            -H "Content-Type: application/json"
