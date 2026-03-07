@@ -53,7 +53,7 @@ router.get('/', async (req, res) => {
     const { page = 1, limit = 50, search = '' } = req.query;
     const offset = (page - 1) * limit;
 
-    let query = 'SELECT id, receipt_no, customer_name, customer_phone, date, total_amount, status, created_at FROM receipts';
+    let query = 'SELECT id, receipt_no, customer_name, customer_phone, date, total_amount, status, created_at, public_token FROM receipts';
     const params = [];
 
     if (search) {
