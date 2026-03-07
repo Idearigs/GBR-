@@ -1,6 +1,7 @@
 # Stage 1: Build React client
 FROM node:20-alpine AS client-build
 WORKDIR /app/client
+ENV NODE_ENV=development
 COPY client/package*.json ./
 RUN npm ci
 COPY client/ ./
