@@ -72,6 +72,12 @@ export const sendSMS = async (id: string, phone: string) => {
   return data;
 };
 
+export const getIdImageUrl = (serverUrl: string) => {
+  const token = getToken();
+  const filename = serverUrl.split('/').pop();
+  return `/api/receipts/id-image/${filename}?token=${token}`;
+};
+
 export const uploadIdImage = async (file: File) => {
   const form = new FormData();
   form.append('id_image', file);

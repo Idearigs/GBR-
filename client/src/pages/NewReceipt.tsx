@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createReceipt, updateReceipt, sendSMS, uploadIdImage } from '../api';
+import { createReceipt, updateReceipt, sendSMS, uploadIdImage, getIdImageUrl } from '../api';
 import type { ReceiptItem } from '../types';
 
 // ──────────────────────────────────────────────────────
@@ -58,6 +58,11 @@ function StepCustomer({
       </button>
       <h2>Hello! 👋</h2>
       <p>Please fill in your details below</p>
+
+      <div style={{ background: 'var(--light)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px', marginBottom: 20, fontSize: 13, color: 'var(--grey)', lineHeight: 1.5 }}>
+        <strong style={{ color: 'var(--dark)', display: 'block', marginBottom: 4 }}>Privacy Notice (UK GDPR)</strong>
+        Andrew McCulloch Jewellers collects your name, address, phone number, a photo of your ID, and your signature to process this transaction and meet our legal obligations. Your data is stored securely and deleted after 6 years. You have the right to request access or erasure — contact us at 0115 925 7552.
+      </div>
 
       <div className="form-group">
         <label>Your Full Name</label>
@@ -149,7 +154,7 @@ function StepIDCapture({ idImageUrl, onCapture, onNext, onBack }: {
       {idImageUrl ? (
         <div style={{ marginBottom: 24 }}>
           <img
-            src={idImageUrl}
+            src={getIdImageUrl(idImageUrl)}
             alt="Customer ID"
             style={{ width: '100%', maxHeight: 300, objectFit: 'contain', borderRadius: 12, border: '2px solid var(--border)' }}
           />

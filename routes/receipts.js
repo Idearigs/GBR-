@@ -2,6 +2,8 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const crypto = require('crypto');
+const fs = require('fs');
+const jwt = require('jsonwebtoken');
 const { pool } = require('../database');
 const { requireAuth } = require('../middleware/auth');
 
@@ -42,6 +44,21 @@ router.get('/public/:token', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// GET /api/receipts/id-image/:filename — authenticated image serving (token via query param or header)
+router.get('/id-image/:filename', (req, res) => {
+  const token = req.query.token || (req.headers.authorization || '').replace('Bearer ', '');
+  if (!token) return res.status(401).json({ error: 'Unauthorised' });
+  try {
+    jwt.verify(token, process.env.JWT_SECRET);
+  } catch {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+  const filename = path.basename(req.params.filename); // prevent path traversal
+  const filePath = path.join(__dirname, '../uploads/ids', filename);
+  if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Not found' });
+  res.sendFile(filePath);
 });
 
 // All routes below require auth
@@ -217,7 +234,7 @@ router.post('/:id/send-sms', async (req, res) => {
 // POST /api/receipts/upload-id  — upload ID photo
 router.post('/upload-id', upload.single('id_image'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file' });
-  const url = `/uploads/ids/${req.file.filename}`;
+  const url = `/api/receipts/id-image/${req.file.filename}`;
   res.json({ url });
 });
 

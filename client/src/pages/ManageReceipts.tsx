@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getReceipts, deleteReceipt, sendReport, getReceipt } from '../api';
+import { getReceipts, deleteReceipt, sendReport, getReceipt, getIdImageUrl } from '../api';
 import type { Receipt } from '../types';
 
 function useToast() {
@@ -40,7 +40,7 @@ export default function ManageReceipts() {
     try {
       const data = await getReceipt(id);
       if (data.id_image_url) {
-        setIdModal({ url: data.id_image_url, name });
+        setIdModal({ url: getIdImageUrl(data.id_image_url), name });
       } else {
         toast.show('No ID photo for this receipt', 'error');
       }
