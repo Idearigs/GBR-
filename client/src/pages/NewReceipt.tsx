@@ -34,8 +34,8 @@ function StepStart({ date, onDateChange, paymentMethod, onPaymentChange, onNext,
     const t = setTimeout(async () => {
       setSearching(true);
       try {
-        const results = await searchCustomers(custSearch);
-        setCustResults(results);
+        const res = await searchCustomers(custSearch);
+        setCustResults(res.data);
       } catch { setCustResults([]); } finally {
         setSearching(false);
       }

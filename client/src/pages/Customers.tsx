@@ -63,7 +63,9 @@ export default function Customers() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [selected, setSelected] = useState<CustomerDetail | null>(null);
   const [modalLoading, setModalLoading] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
@@ -75,8 +77,14 @@ export default function Customers() {
 
   const doSearch = useCallback(async (q: string) => {
     setLoading(true);
-    try { setCustomers(await searchCustomers(q)); }
-    catch { /* ignore */ } finally { setLoading(false); }
+    setError('');
+    try {
+      const res = await searchCustomers(q);
+      setCustomers(res.data);
+      setTotalCount(res.total);
+    }
+    catch (e: any) { setError(e.message || 'Failed to load customers'); }
+    finally { setLoading(false); }
   }, []);
 
   useEffect(() => {
@@ -143,7 +151,7 @@ export default function Customers() {
       <div style={{ paddingTop: 72, paddingBottom: 40, maxWidth: 680, margin: '0 auto', padding: '72px 16px 40px' }}>
 
         {/* Stat card */}
-        {!search && customers.length > 0 && (
+        {totalCount > 0 && (
           <div style={{
             background: 'linear-gradient(135deg, #1C1C1E 0%, #3A3A3C 100%)',
             borderRadius: 18, padding: '20px 24px', marginBottom: 20,
@@ -151,7 +159,9 @@ export default function Customers() {
           }}>
             <div>
               <div style={{ fontSize: 13, color: '#8E8E93', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Customers</div>
-              <div style={{ fontSize: 36, fontWeight: 800, color: '#fff', marginTop: 4 }}>{customers.length}</div>
+              <div style={{ fontSize: 36, fontWeight: 800, color: '#fff', marginTop: 4 }}>{totalCount.toLocaleString()}</div>
+              {search && <div style={{ fontSize: 12, color: '#8E8E93', marginTop: 2 }}>Showing {customers.length} of {totalCount.toLocaleString()} matching</div>}
+              {!search && customers.length < totalCount && <div style={{ fontSize: 12, color: '#8E8E93', marginTop: 2 }}>Showing first {customers.length} — search to find specific customers</div>}
             </div>
             <div style={{ fontSize: 44, opacity: 0.25 }}>👤</div>
           </div>
@@ -183,9 +193,15 @@ export default function Customers() {
           )}
         </div>
 
-        {loading && <div style={{ textAlign: 'center', padding: 48, color: '#8E8E93', fontSize: 14 }}>Searching...</div>}
+        {loading && <div style={{ textAlign: 'center', padding: 48, color: '#8E8E93', fontSize: 14 }}>Loading...</div>}
 
-        {!loading && customers.length === 0 && (
+        {error && (
+          <div style={{ background: '#FFF0F0', border: '1px solid #FFCDD2', borderRadius: 12, padding: '14px 16px', marginBottom: 16, color: '#FF3B30', fontSize: 14 }}>
+            ⚠️ {error}
+          </div>
+        )}
+
+        {!loading && !error && customers.length === 0 && (
           <div style={{ textAlign: 'center', padding: '64px 24px' }}>
             <div style={{
               width: 72, height: 72, borderRadius: 36, background: '#E5E5EA',
