@@ -9,15 +9,18 @@ router.use(requireAuth);
 router.get('/', async (req, res) => {
   try {
     const { search = '' } = req.query;
-    let query = 'SELECT id, name, phone, address, created_at FROM customers';
+    const s = search.trim();
+    let where = '';
     const params = [];
-    if (search.trim()) {
-      query += ' WHERE name ILIKE $1 OR phone LIKE $2';
-      params.push(`%${search.trim()}%`, `%${search.trim()}%`);
+    if (s) {
+      where = ' WHERE name ILIKE $1 OR phone LIKE $2';
+      params.push(`%${s}%`, `%${s}%`);
     }
-    query += ' ORDER BY updated_at DESC LIMIT 50';
-    const { rows } = await pool.query(query, params);
-    res.json(rows);
+    const [{ rows }, { rows: countRows }] = await Promise.all([
+      pool.query(`SELECT id, name, phone, address, created_at FROM customers${where} ORDER BY name ASC LIMIT 100`, params),
+      pool.query(`SELECT COUNT(*)::int AS total FROM customers${where}`, params),
+    ]);
+    res.json({ data: rows, total: countRows[0].total });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
