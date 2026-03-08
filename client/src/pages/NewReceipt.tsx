@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { createReceipt, updateReceipt, sendSMS, uploadIdImage, getIdImageUrl, searchCustomers } from '../api';
 import type { ReceiptItem } from '../types';
 
+type Step = 'find-customer' | 'new-customer' | 'receipt' | 'id' | 'items' | 'sign' | 'done';
+
 // ──────────────────────────────────────────────────────
 // Toast hook
 // ──────────────────────────────────────────────────────
@@ -17,38 +19,140 @@ function useToast() {
 }
 
 // ──────────────────────────────────────────────────────
-// Step 0 — Owner starts (auto date + receipt no)
+// Step 0 — Owner: Find existing customer
 // ──────────────────────────────────────────────────────
-function StepStart({ date, onDateChange, paymentMethod, onPaymentChange, onNext, onCustomerSelect }: {
-  date: string; onDateChange: (d: string) => void;
-  paymentMethod: string; onPaymentChange: (m: string) => void;
-  onNext: () => void;
-  onCustomerSelect: (c: { name: string; phone: string; address: string }) => void;
+function StepFindCustomer({ onSelect, onNewCustomer }: {
+  onSelect: (c: { id: string; name: string; phone: string; address: string }) => void;
+  onNewCustomer: () => void;
 }) {
-  const [custSearch, setCustSearch] = useState('');
-  const [custResults, setCustResults] = useState<Array<{ id: string; name: string; phone: string; address: string }>>([]);
+  const [q, setQ] = useState('');
+  const [results, setResults] = useState<Array<{ id: string; name: string; phone: string; address: string }>>([]);
   const [searching, setSearching] = useState(false);
+  const [selected, setSelected] = useState<{ id: string; name: string; phone: string; address: string } | null>(null);
 
   useEffect(() => {
-    if (!custSearch.trim()) { setCustResults([]); return; }
+    if (!q.trim()) { setResults([]); return; }
     const t = setTimeout(async () => {
       setSearching(true);
-      try {
-        const res = await searchCustomers(custSearch);
-        setCustResults(res.data);
-      } catch { setCustResults([]); } finally {
-        setSearching(false);
-      }
+      try { const res = await searchCustomers(q); setResults(res.data); }
+      catch { setResults([]); } finally { setSearching(false); }
     }, 300);
     return () => clearTimeout(t);
-  }, [custSearch]);
+  }, [q]);
 
   return (
+    <div className="page" style={{ display: 'flex', flexDirection: 'column', minHeight: '70vh' }}>
+      <div style={{ textAlign: 'center', marginBottom: 32 }}>
+        <div style={{ fontSize: 52, marginBottom: 12 }}>👤</div>
+        <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 6 }}>Find Customer</h2>
+        <p style={{ color: 'var(--grey)', fontSize: 15 }}>Search by name or phone number</p>
+      </div>
+
+      {selected ? (
+        <div style={{ background: 'var(--success-pale)', border: '2px solid var(--success)', borderRadius: 14, padding: '16px 18px', marginBottom: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--dark)' }}>{selected.name}</div>
+              {selected.phone && <div style={{ fontSize: 14, color: 'var(--grey)', marginTop: 3 }}>{selected.phone}</div>}
+              {selected.address && <div style={{ fontSize: 13, color: 'var(--grey)', marginTop: 2 }}>{selected.address.split('\n')[0]}</div>}
+            </div>
+            <button onClick={() => { setSelected(null); setQ(''); }} style={{ background: 'none', border: 'none', color: 'var(--grey)', fontSize: 20, cursor: 'pointer', padding: 4 }}>✕</button>
+          </div>
+          <button className="btn btn-primary btn-full mt-16" onClick={() => onSelect(selected)}>
+            Continue with {selected.name.split(' ')[0]} →
+          </button>
+        </div>
+      ) : (
+        <div className="form-group">
+          <input
+            type="search"
+            placeholder="Search by name or phone..."
+            value={q}
+            onChange={e => { setQ(e.target.value); setSelected(null); }}
+            autoFocus
+            style={{ fontSize: 17 }}
+          />
+          {searching && <div style={{ fontSize: 13, color: 'var(--grey)', padding: '6px 4px' }}>Searching...</div>}
+          {results.length > 0 && (
+            <div style={{ background: '#fff', borderRadius: 12, marginTop: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.12)', overflow: 'hidden', maxHeight: 320, overflowY: 'auto' }}>
+              {results.map(c => (
+                <div key={c.id} onClick={() => { setSelected(c); setResults([]); }}
+                  style={{ padding: '14px 16px', borderBottom: '1px solid #F2F2F7', cursor: 'pointer' }}>
+                  <div style={{ fontWeight: 700, fontSize: 16 }}>{c.name}</div>
+                  {c.phone && <div style={{ fontSize: 13, color: '#8E8E93', marginTop: 2 }}>{c.phone}</div>}
+                </div>
+              ))}
+            </div>
+          )}
+          {q.trim() && !searching && results.length === 0 && (
+            <div style={{ fontSize: 14, color: 'var(--grey)', padding: '8px 4px' }}>No customers found for "{q}"</div>
+          )}
+        </div>
+      )}
+
+      <div style={{ marginTop: 'auto', paddingTop: 24, borderTop: '1px solid var(--border)' }}>
+        <p style={{ fontSize: 14, color: 'var(--grey)', textAlign: 'center', marginBottom: 12 }}>New or walk-in customer?</p>
+        <button className="btn btn-outline btn-full" onClick={onNewCustomer}>
+          + Add New Customer
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────
+// Step 1 — Owner: fill in new customer details
+// ──────────────────────────────────────────────────────
+function StepNewCustomer({ name, phone, address, onChange, onNext, onBack }: {
+  name: string; phone: string; address: string;
+  onChange: (f: string, v: string) => void;
+  onNext: () => void; onBack: () => void;
+}) {
+  return (
+    <div className="page">
+      <button className="btn btn-ghost" style={{ padding: '8px 0', marginBottom: 20 }} onClick={onBack}>← Back</button>
+      <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 6 }}>New Customer</h2>
+      <p style={{ color: 'var(--grey)', fontSize: 14, marginBottom: 24 }}>Enter the customer's details</p>
+
+      <div className="form-group">
+        <label>Full Name *</label>
+        <input type="text" placeholder="e.g. John Smith" value={name}
+          onChange={e => onChange('name', e.target.value)} autoCapitalize="words" style={{ fontSize: 18 }} />
+      </div>
+      <div className="form-group">
+        <label>Phone Number</label>
+        <input type="tel" placeholder="07xxx xxxxxx" value={phone}
+          onChange={e => onChange('phone', e.target.value)} style={{ fontSize: 18 }} />
+      </div>
+      <div className="form-group">
+        <label>Address</label>
+        <textarea placeholder="Street, City, Postcode" value={address}
+          onChange={e => onChange('address', e.target.value)} style={{ fontSize: 16, minHeight: 90 }} />
+      </div>
+
+      <button className="btn btn-primary btn-full btn-lg mt-16" onClick={onNext} disabled={!name.trim()}>
+        Continue →
+      </button>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────
+// Step 2 — Owner: receipt date + payment
+// ──────────────────────────────────────────────────────
+function StepStart({ date, onDateChange, paymentMethod, onPaymentChange, customerName, onNext, onBack }: {
+  date: string; onDateChange: (d: string) => void;
+  paymentMethod: string; onPaymentChange: (m: string) => void;
+  customerName: string;
+  onNext: () => void; onBack: () => void;
+}) {
+  return (
     <div className="page" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '70vh' }}>
-      <div style={{ textAlign: 'center', marginBottom: 40 }}>
-        <div style={{ fontSize: 56, marginBottom: 16 }}>🥇</div>
-        <h2 style={{ fontSize: 26, fontWeight: 800, marginBottom: 8 }}>New Gold Buying Receipt</h2>
-        <p style={{ color: 'var(--grey)', fontSize: 16 }}>Andrew McCulloch Jewellers</p>
+      <button className="btn btn-ghost" style={{ padding: '8px 0', marginBottom: 20 }} onClick={onBack}>← Back</button>
+      <div style={{ textAlign: 'center', marginBottom: 32 }}>
+        <div style={{ fontSize: 52, marginBottom: 12 }}>🥇</div>
+        <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 6 }}>New Gold Buying Receipt</h2>
+        {customerName && <p style={{ color: 'var(--grey)', fontSize: 15 }}>Customer: <strong>{customerName}</strong></p>}
       </div>
 
       <div className="form-group">
@@ -59,58 +163,21 @@ function StepStart({ date, onDateChange, paymentMethod, onPaymentChange, onNext,
       <div className="form-group">
         <label>Payment Method</label>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 4 }}>
-          <button
-            type="button"
-            onClick={() => onPaymentChange('cash')}
-            style={{
-              padding: '20px 16px', borderRadius: 16, border: `2.5px solid ${paymentMethod === 'cash' ? 'var(--success)' : 'var(--border)'}`,
-              background: paymentMethod === 'cash' ? 'var(--success-pale)' : 'var(--surface)',
-              cursor: 'pointer', textAlign: 'center', transition: 'all 0.15s',
-            }}
-          >
+          <button type="button" onClick={() => onPaymentChange('cash')} style={{
+            padding: '20px 16px', borderRadius: 16, border: `2.5px solid ${paymentMethod === 'cash' ? 'var(--success)' : 'var(--border)'}`,
+            background: paymentMethod === 'cash' ? 'var(--success-pale)' : 'var(--surface)', cursor: 'pointer', textAlign: 'center',
+          }}>
             <div style={{ fontSize: 36, marginBottom: 8 }}>💵</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: paymentMethod === 'cash' ? 'var(--success)' : 'var(--dark)' }}>Cash</div>
           </button>
-          <button
-            type="button"
-            onClick={() => onPaymentChange('card')}
-            style={{
-              padding: '20px 16px', borderRadius: 16, border: `2.5px solid ${paymentMethod === 'card' ? 'var(--info)' : 'var(--border)'}`,
-              background: paymentMethod === 'card' ? 'var(--info-pale)' : 'var(--surface)',
-              cursor: 'pointer', textAlign: 'center', transition: 'all 0.15s',
-            }}
-          >
+          <button type="button" onClick={() => onPaymentChange('card')} style={{
+            padding: '20px 16px', borderRadius: 16, border: `2.5px solid ${paymentMethod === 'card' ? 'var(--info)' : 'var(--border)'}`,
+            background: paymentMethod === 'card' ? 'var(--info-pale)' : 'var(--surface)', cursor: 'pointer', textAlign: 'center',
+          }}>
             <div style={{ fontSize: 36, marginBottom: 8 }}>💳</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: paymentMethod === 'card' ? 'var(--info)' : 'var(--dark)' }}>Card</div>
           </button>
         </div>
-      </div>
-
-      {/* Customer lookup */}
-      <div className="form-group">
-        <label>Customer Lookup (optional)</label>
-        <input
-          type="search"
-          placeholder="Search by name or phone..."
-          value={custSearch}
-          onChange={e => { setCustSearch(e.target.value); }}
-          style={{ fontSize: 17 }}
-        />
-        {searching && <div style={{ fontSize: 13, color: 'var(--grey)', padding: '6px 4px' }}>Searching...</div>}
-        {custResults.length > 0 && (
-          <div style={{ background: '#fff', borderRadius: 10, marginTop: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
-            {custResults.map((c: { id: string; name: string; phone: string; address: string }) => (
-              <div
-                key={c.id}
-                onClick={() => { onCustomerSelect(c); setCustSearch(''); setCustResults([]); }}
-                style={{ padding: '12px 16px', borderBottom: '1px solid #F2F2F7', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 2 }}
-              >
-                <span style={{ fontWeight: 700, fontSize: 15 }}>{c.name}</span>
-                {c.phone && <span style={{ fontSize: 13, color: '#8E8E93' }}>{c.phone}</span>}
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       <button className="btn btn-primary btn-full btn-lg mt-24" onClick={onNext}>
@@ -121,76 +188,7 @@ function StepStart({ date, onDateChange, paymentMethod, onPaymentChange, onNext,
 }
 
 // ──────────────────────────────────────────────────────
-// Step 1 — Customer fills their details (large UI)
-// ──────────────────────────────────────────────────────
-function StepCustomer({
-  name, address, phone,
-  onChange, onNext, onBack
-}: {
-  name: string; address: string; phone: string;
-  onChange: (f: string, v: string) => void;
-  onNext: () => void; onBack: () => void;
-}) {
-  return (
-    <div className="customer-step page">
-      <button className="btn btn-ghost" style={{ alignSelf: 'flex-start', marginBottom: 24, padding: '8px 0' }} onClick={onBack}>
-        ← Back
-      </button>
-      <h2>Hello! 👋</h2>
-      <p>Please fill in your details below</p>
-
-      <div style={{ background: 'var(--light)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px', marginBottom: 20, fontSize: 13, color: 'var(--grey)', lineHeight: 1.5 }}>
-        <strong style={{ color: 'var(--dark)', display: 'block', marginBottom: 4 }}>Privacy Notice (UK GDPR)</strong>
-        Andrew McCulloch Jewellers collects your name, address, phone number, a photo of your ID, and your signature to process this transaction and meet our legal obligations. Your data is stored securely and deleted after 6 years. You have the right to request access or erasure — contact us at 0115 925 7552.
-      </div>
-
-      <div className="form-group">
-        <label>Your Full Name</label>
-        <input
-          type="text"
-          placeholder="Full name"
-          value={name}
-          onChange={e => onChange('name', e.target.value)}
-          autoCapitalize="words"
-          style={{ fontSize: 22, padding: '18px 20px' }}
-        />
-      </div>
-
-      <div className="form-group">
-        <label>Your Address</label>
-        <textarea
-          placeholder="Street, City, Postcode"
-          value={address}
-          onChange={e => onChange('address', e.target.value)}
-          style={{ fontSize: 20, padding: '16px 20px', minHeight: 120 }}
-        />
-      </div>
-
-      <div className="form-group">
-        <label>Phone Number (optional)</label>
-        <input
-          type="tel"
-          placeholder="07xxx xxxxxx"
-          value={phone}
-          onChange={e => onChange('phone', e.target.value)}
-          style={{ fontSize: 22, padding: '18px 20px' }}
-        />
-      </div>
-
-      <button
-        className="btn btn-primary btn-full btn-lg mt-16"
-        onClick={onNext}
-        disabled={!name.trim()}
-      >
-        Next →
-      </button>
-      {!name.trim() && <p style={{ textAlign: 'center', color: 'var(--grey)', marginTop: 10, fontSize: 14 }}>Please enter your name to continue</p>}
-    </div>
-  );
-}
-
-// ──────────────────────────────────────────────────────
-// Step 2 — Owner captures customer ID photo
+// Step 3 — Owner captures customer ID photo
 // ──────────────────────────────────────────────────────
 function StepIDCapture({ idImageUrl, onCapture, onNext, onBack }: {
   idImageUrl: string;
@@ -718,7 +716,7 @@ export default function NewReceipt() {
 
   const today = new Date().toISOString().split('T')[0];
 
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState<Step>('find-customer');
   const [saving, setSaving] = useState(false);
   const [savedId, setSavedId] = useState('');
   const [publicToken, setPublicToken] = useState('');
@@ -733,14 +731,14 @@ export default function NewReceipt() {
 
   const totalAmount = items.reduce((s, i) => s + i.pounds + i.pence / 100, 0);
 
-  // Step labels for progress bar (steps 0-5)
-  const stepDots = ['Start', 'Details', 'ID', 'Items', 'Sign', 'Done'];
+  // Progress bar: find-customer, receipt, id, items, sign, done
+  const stepOrder: Step[] = ['find-customer', 'receipt', 'id', 'items', 'sign', 'done'];
+  const stepIndex = stepOrder.indexOf(step === 'new-customer' ? 'find-customer' : step);
 
   const handleCustomerChange = (f: string, v: string) => {
-    setCustomer(prev => ({ ...prev, [f === 'name' ? 'name' : f === 'address' ? 'address' : 'phone']: v }));
+    setCustomer(prev => ({ ...prev, [f]: v }));
   };
 
-  // After signature — save everything to server
   const handleSignatureSave = async (dataUrl: string) => {
     setSignatureData(dataUrl);
     setSaving(true);
@@ -750,15 +748,13 @@ export default function NewReceipt() {
         customer_name: customer.name,
         customer_address: customer.address,
         customer_phone: customer.phone,
-        date,
-        items,
+        date, items,
         total_amount: totalAmount.toFixed(2),
         signature_data: dataUrl,
         id_image_url: idImageUrl,
         payment_method: paymentMethod,
         status: 'signed',
       };
-
       if (savedId) {
         data = await updateReceipt(savedId, payload);
       } else {
@@ -767,7 +763,7 @@ export default function NewReceipt() {
       setSavedId(data.id);
       setPublicToken(data.public_token || '');
       setReceiptNo(data.receipt_no);
-      setStep(5);
+      setStep('done');
     } catch (e: any) {
       toast.show(e.message || 'Save failed', 'error');
     } finally {
@@ -775,17 +771,15 @@ export default function NewReceipt() {
     }
   };
 
-  // When owner advances to items step, pre-save draft
   const handlePreSave = async () => {
-    if (savedId) { setStep(4); return; }
+    if (savedId) { setStep('sign'); return; }
     setSaving(true);
     try {
       const data = await createReceipt({
         customer_name: customer.name,
         customer_address: customer.address,
         customer_phone: customer.phone,
-        date,
-        items,
+        date, items,
         total_amount: 0,
         payment_method: paymentMethod,
         status: 'draft',
@@ -793,7 +787,7 @@ export default function NewReceipt() {
       setSavedId(data.id);
       setPublicToken(data.public_token || '');
       setReceiptNo(data.receipt_no);
-      setStep(4);
+      setStep('sign');
     } catch (e: any) {
       toast.show(e.message || 'Failed to save', 'error');
     } finally {
@@ -812,90 +806,84 @@ export default function NewReceipt() {
 
   return (
     <div className="app-shell">
-      {/* Top bar — only show on non-signature steps */}
-      {step !== 4 && (
+      {step !== 'sign' && (
         <div className="topbar no-print">
           <button className="btn btn-ghost" style={{ color: '#aaa', minHeight: 0, padding: '6px 0', fontSize: 14 }} onClick={() => navigate('/')}>
             ✕ Cancel
           </button>
           <h1 style={{ fontSize: 15 }}>Gold Buying Receipt</h1>
           <span style={{ color: 'var(--gold-light)', fontSize: 13, fontWeight: 600 }}>
-            {step < 5 && receiptNo ? `No:${receiptNo}` : ''}
+            {receiptNo ? `No:${receiptNo}` : ''}
           </span>
         </div>
       )}
 
-      {/* Progress bar */}
-      {step !== 4 && (
+      {step !== 'sign' && (
         <div className="steps-bar no-print">
-          {stepDots.map((_, i) => (
-            <div
-              key={i}
-              className={`step-dot ${i < step ? 'done' : i === step ? 'active' : ''}`}
-            />
+          {stepOrder.map((s, i) => (
+            <div key={s} className={`step-dot ${i < stepIndex ? 'done' : i === stepIndex ? 'active' : ''}`} />
           ))}
         </div>
       )}
 
-      {/* Steps */}
-      {step === 0 && (
-        <StepStart
-          date={date}
-          onDateChange={setDate}
-          paymentMethod={paymentMethod}
-          onPaymentChange={setPaymentMethod}
-          onNext={() => setStep(1)}
-          onCustomerSelect={c => setCustomer({ name: c.name, phone: c.phone, address: c.address })}
+      {step === 'find-customer' && (
+        <StepFindCustomer
+          onSelect={c => { setCustomer({ name: c.name, phone: c.phone || '', address: c.address || '' }); setStep('receipt'); }}
+          onNewCustomer={() => setStep('new-customer')}
         />
       )}
-      {step === 1 && (
-        <StepCustomer
-          name={customer.name}
-          address={customer.address}
-          phone={customer.phone}
+      {step === 'new-customer' && (
+        <StepNewCustomer
+          name={customer.name} phone={customer.phone} address={customer.address}
           onChange={handleCustomerChange}
-          onNext={() => setStep(2)}
-          onBack={() => setStep(0)}
+          onNext={() => setStep('receipt')}
+          onBack={() => setStep('find-customer')}
         />
       )}
-      {step === 2 && (
+      {step === 'receipt' && (
+        <StepStart
+          date={date} onDateChange={setDate}
+          paymentMethod={paymentMethod} onPaymentChange={setPaymentMethod}
+          customerName={customer.name}
+          onNext={() => setStep('id')}
+          onBack={() => setStep('find-customer')}
+        />
+      )}
+      {step === 'id' && (
         <StepIDCapture
-          idImageUrl={idImageUrl}
-          onCapture={setIdImageUrl}
-          onNext={() => setStep(3)}
-          onBack={() => setStep(1)}
+          idImageUrl={idImageUrl} onCapture={setIdImageUrl}
+          onNext={() => setStep('items')}
+          onBack={() => setStep('receipt')}
         />
       )}
-      {step === 3 && (
+      {step === 'items' && (
         <StepItems
-          items={items}
-          onChange={setItems}
+          items={items} onChange={setItems}
           onNext={handlePreSave}
-          onBack={() => setStep(2)}
+          onBack={() => setStep('id')}
         />
       )}
-      {step === 4 && (
+      {step === 'sign' && (
         <StepSignature
           onSave={handleSignatureSave}
-          onBack={() => setStep(3)}
+          onBack={() => setStep('items')}
         />
       )}
-      {step === 5 && savedId && (
+      {step === 'done' && savedId && (
         <StepFinalize
           receipt={{
             receipt_no: receiptNo,
             customer_name: customer.name,
             customer_address: customer.address,
             customer_phone: customer.phone,
-            date,
-            items,
+            date, items,
             total_amount: totalAmount,
             signature_data: signatureData,
             id_image_url: idImageUrl,
           }}
           receiptId={savedId}
           publicToken={publicToken}
-          onBack={() => setStep(4)}
+          onBack={() => setStep('sign')}
           onDone={() => navigate('/')}
         />
       )}
