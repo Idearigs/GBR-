@@ -151,6 +151,15 @@ export default function PublicReceipt() {
             </div>
           )}
 
+          {/* GDPR Notice */}
+          <div style={{ margin: '0 24px 20px', padding: '14px 16px', background: '#F2F2F7', borderRadius: 10, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+            <div style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>🔒</div>
+            <div style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.6 }}>
+              <strong style={{ color: '#1C1C1E', fontWeight: 700 }}>Data & Privacy</strong><br />
+              Customer information and identification are recorded for legal compliance, fraud prevention and transaction records. Data is stored securely and retained for up to 6 years.
+            </div>
+          </div>
+
           {/* Footer */}
           <div style={{ background: '#F9F9F9', padding: '16px 24px', textAlign: 'center', borderTop: '1px solid #F2F2F7' }}>
             <div style={{ fontSize: 11, color: '#AEAEB2' }}>This is your official digital receipt</div>

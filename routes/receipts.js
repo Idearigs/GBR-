@@ -246,7 +246,7 @@ router.post('/:id/send-sms', async (req, res) => {
       return res.status(400).json({ error: 'No valid phone number provided' });
     }
 
-    const message = `Andrew McCulloch Jewellers - Receipt No:${padReceiptNo(r.receipt_no)}. View: ${publicUrl}`;
+    const message = `Andrew McCulloch Jewellers — Your gold buying receipt No. ${padReceiptNo(r.receipt_no)} is ready. Tap to view your digital receipt: ${publicUrl}`;
 
     const smsRes = await fetch('https://api.voodoosms.com/sendsms', {
       method: 'POST',
@@ -256,7 +256,7 @@ router.post('/:id/send-sms', async (req, res) => {
       },
       body: JSON.stringify({
         to: toInt,
-        from: process.env.VOODOO_SENDER || 'McCulloch',
+        from: process.env.VOODOO_SENDER || 'GBR-McC',
         msg: message,
       }),
     });
