@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createReceipt, updateReceipt, sendSMS, uploadIdImage, getIdImageUrl } from '../api';
+import { createReceipt, updateReceipt, sendSMS, uploadIdImage, getIdImageUrl, searchCustomers } from '../api';
 import type { ReceiptItem } from '../types';
 
 // ──────────────────────────────────────────────────────
@@ -19,11 +19,30 @@ function useToast() {
 // ──────────────────────────────────────────────────────
 // Step 0 — Owner starts (auto date + receipt no)
 // ──────────────────────────────────────────────────────
-function StepStart({ date, onDateChange, paymentMethod, onPaymentChange, onNext }: {
+function StepStart({ date, onDateChange, paymentMethod, onPaymentChange, onNext, onCustomerSelect }: {
   date: string; onDateChange: (d: string) => void;
   paymentMethod: string; onPaymentChange: (m: string) => void;
   onNext: () => void;
+  onCustomerSelect: (c: { name: string; phone: string; address: string }) => void;
 }) {
+  const [custSearch, setCustSearch] = useState('');
+  const [custResults, setCustResults] = useState<Array<{ id: string; name: string; phone: string; address: string }>>([]);
+  const [searching, setSearching] = useState(false);
+
+  useEffect(() => {
+    if (!custSearch.trim()) { setCustResults([]); return; }
+    const t = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const results = await searchCustomers(custSearch);
+        setCustResults(results);
+      } catch { setCustResults([]); } finally {
+        setSearching(false);
+      }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [custSearch]);
+
   return (
     <div className="page" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '70vh' }}>
       <div style={{ textAlign: 'center', marginBottom: 40 }}>
@@ -65,6 +84,33 @@ function StepStart({ date, onDateChange, paymentMethod, onPaymentChange, onNext 
             <div style={{ fontSize: 18, fontWeight: 700, color: paymentMethod === 'card' ? 'var(--info)' : 'var(--dark)' }}>Card</div>
           </button>
         </div>
+      </div>
+
+      {/* Customer lookup */}
+      <div className="form-group">
+        <label>Customer Lookup (optional)</label>
+        <input
+          type="search"
+          placeholder="Search by name or phone..."
+          value={custSearch}
+          onChange={e => { setCustSearch(e.target.value); }}
+          style={{ fontSize: 17 }}
+        />
+        {searching && <div style={{ fontSize: 13, color: 'var(--grey)', padding: '6px 4px' }}>Searching...</div>}
+        {custResults.length > 0 && (
+          <div style={{ background: '#fff', borderRadius: 10, marginTop: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
+            {custResults.map((c: { id: string; name: string; phone: string; address: string }) => (
+              <div
+                key={c.id}
+                onClick={() => { onCustomerSelect(c); setCustSearch(''); setCustResults([]); }}
+                style={{ padding: '12px 16px', borderBottom: '1px solid #F2F2F7', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 2 }}
+              >
+                <span style={{ fontWeight: 700, fontSize: 15 }}>{c.name}</span>
+                {c.phone && <span style={{ fontSize: 13, color: '#8E8E93' }}>{c.phone}</span>}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <button className="btn btn-primary btn-full btn-lg mt-24" onClick={onNext}>
@@ -793,7 +839,14 @@ export default function NewReceipt() {
 
       {/* Steps */}
       {step === 0 && (
-        <StepStart date={date} onDateChange={setDate} paymentMethod={paymentMethod} onPaymentChange={setPaymentMethod} onNext={() => setStep(1)} />
+        <StepStart
+          date={date}
+          onDateChange={setDate}
+          paymentMethod={paymentMethod}
+          onPaymentChange={setPaymentMethod}
+          onNext={() => setStep(1)}
+          onCustomerSelect={c => setCustomer({ name: c.name, phone: c.phone, address: c.address })}
+        />
       )}
       {step === 1 && (
         <StepCustomer

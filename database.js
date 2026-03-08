@@ -46,6 +46,25 @@ const initDb = async () => {
       ADD COLUMN IF NOT EXISTS payment_method VARCHAR(10) DEFAULT 'cash';
     `);
 
+    // Customers table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS customers (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name VARCHAR(255) NOT NULL,
+        phone VARCHAR(30),
+        address TEXT,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS customers_phone_idx
+      ON customers(phone) WHERE phone IS NOT NULL AND phone != '';
+    `);
+    await client.query(`
+      ALTER TABLE receipts ADD COLUMN IF NOT EXISTS customer_id UUID REFERENCES customers(id);
+    `);
+
     // Migrate receipt_no from SERIAL integer → YYYYMMDDHHMM varchar timestamp
     const { rows: colInfo } = await client.query(`
       SELECT data_type FROM information_schema.columns

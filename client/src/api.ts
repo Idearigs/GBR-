@@ -115,3 +115,17 @@ export const sendRangeReport = async (from: string, to: string) => {
   if (!r.ok) throw new Error(data.error);
   return data;
 };
+
+export const searchCustomers = async (search: string) => {
+  const r = await fetch(`${BASE}/customers?search=${encodeURIComponent(search)}`, { headers: headers() });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error);
+  return data as Array<{ id: string; name: string; phone: string; address: string }>;
+};
+
+export const getCustomer = async (id: string) => {
+  const r = await fetch(`${BASE}/customers/${id}`, { headers: headers() });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error);
+  return data;
+};

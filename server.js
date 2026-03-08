@@ -7,6 +7,7 @@ const { initDb } = require('./database');
 const authRouter = require('./routes/auth');
 const receiptsRouter = require('./routes/receipts');
 const reportsRouter = require('./routes/reports');
+const customersRouter = require('./routes/customers');
 
 const app = express();
 const PORT = process.env.PORT || 3100;
@@ -23,6 +24,7 @@ app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 app.use('/api/auth', authRouter);
 app.use('/api/receipts', receiptsRouter);
 app.use('/api/reports', reportsRouter);
+app.use('/api/customers', customersRouter);
 
 // Public receipt route (no auth) — served before React catch-all
 // Already handled inside receipts router at GET /api/receipts/public/:token

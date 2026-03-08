@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard';
 import NewReceipt from './pages/NewReceipt';
 import ManageReceipts from './pages/ManageReceipts';
 import PublicReceipt from './pages/PublicReceipt';
+import Customers from './pages/Customers';
 
 const isLoggedIn = () => !!localStorage.getItem('gbr_token');
 
@@ -32,6 +33,7 @@ export default function App() {
         <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/new" element={<ProtectedRoute><NewReceipt /></ProtectedRoute>} />
         <Route path="/manage" element={<ProtectedRoute><ManageReceipts /></ProtectedRoute>} />
+        <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

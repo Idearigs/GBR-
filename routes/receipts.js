@@ -26,6 +26,33 @@ const makeReceiptNo = () => {
 };
 const padReceiptNo = (n) => String(n); // kept for SMS/display — no padding needed for timestamp format
 
+// Helper: upsert customer record, return customer_id
+const upsertCustomer = async (name, phone, address) => {
+  if (!name || !name.trim()) return null;
+  const cleanPhone = phone ? phone.replace(/[\s\-().]/g, '') : null;
+  // Try find by phone
+  if (cleanPhone) {
+    const { rows } = await pool.query('SELECT id FROM customers WHERE phone = $1', [cleanPhone]);
+    if (rows.length) {
+      await pool.query('UPDATE customers SET name=$1, address=$2, updated_at=NOW() WHERE id=$3', [name.trim(), address || null, rows[0].id]);
+      return rows[0].id;
+    }
+  }
+  // Try find by name
+  const { rows: byName } = await pool.query('SELECT id FROM customers WHERE LOWER(name)=LOWER($1) LIMIT 1', [name.trim()]);
+  if (byName.length) {
+    await pool.query('UPDATE customers SET phone=COALESCE($1,phone), address=COALESCE($2,address), updated_at=NOW() WHERE id=$3',
+      [cleanPhone || null, address || null, byName[0].id]);
+    return byName[0].id;
+  }
+  // Create new
+  const { rows: newC } = await pool.query(
+    'INSERT INTO customers (name, phone, address) VALUES ($1,$2,$3) RETURNING id',
+    [name.trim(), cleanPhone || null, address || null]
+  );
+  return newC[0].id;
+};
+
 // GET /api/public/receipt/:token  — no auth, public
 router.get('/public/:token', async (req, res) => {
   try {
@@ -165,10 +192,11 @@ router.post('/', async (req, res) => {
     const { customer_name, customer_address, customer_phone, date, items, total_amount, notes, payment_method } = req.body;
     const public_token = crypto.randomBytes(32).toString('hex');
 
+    const customerId = await upsertCustomer(customer_name, customer_phone, customer_address);
     const receiptNo = makeReceiptNo();
     const { rows } = await pool.query(
-      `INSERT INTO receipts (receipt_no, customer_name, customer_address, customer_phone, date, items, total_amount, notes, public_token, status, payment_method)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'draft',$10) RETURNING *`,
+      `INSERT INTO receipts (receipt_no, customer_name, customer_address, customer_phone, date, items, total_amount, notes, public_token, status, payment_method, customer_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'draft',$10,$11) RETURNING *`,
       [
         receiptNo,
         customer_name || '',
@@ -180,6 +208,7 @@ router.post('/', async (req, res) => {
         notes || '',
         public_token,
         payment_method || 'cash',
+        customerId,
       ]
     );
     const r = rows[0];
@@ -194,6 +223,10 @@ router.put('/:id', async (req, res) => {
   try {
     const { customer_name, customer_address, customer_phone, date, items, total_amount, signature_data, id_image_url, status, notes, payment_method } = req.body;
 
+    const customerId = (customer_name || customer_phone)
+      ? await upsertCustomer(customer_name, customer_phone, customer_address)
+      : null;
+
     const { rows } = await pool.query(
       `UPDATE receipts SET
         customer_name = COALESCE($1, customer_name),
@@ -207,8 +240,9 @@ router.put('/:id', async (req, res) => {
         status = COALESCE($9, status),
         notes = COALESCE($10, notes),
         payment_method = COALESCE($11, payment_method),
+        customer_id = COALESCE($12, customer_id),
         updated_at = NOW()
-       WHERE id = $12 RETURNING *`,
+       WHERE id = $13 RETURNING *`,
       [
         customer_name,
         customer_address,
@@ -221,6 +255,7 @@ router.put('/:id', async (req, res) => {
         status,
         notes,
         payment_method,
+        customerId,
         req.params.id,
       ]
     );
