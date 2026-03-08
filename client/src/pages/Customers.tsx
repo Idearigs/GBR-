@@ -17,8 +17,8 @@ function CustomerFormModal({ title, initial, onSave, onClose, saving }: {
   const [form, setForm] = useState(initial);
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 400, display: 'flex', alignItems: 'flex-end' }}>
-      <div style={{ background: '#F2F2F7', borderRadius: '24px 24px 0 0', width: '100%', padding: '0 0 40px' }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 400, display: 'flex', alignItems: 'flex-end', animation: 'fadeIn 0.2s ease both' }}>
+      <div style={{ background: '#F2F2F7', borderRadius: '24px 24px 0 0', width: '100%', padding: '0 0 40px', animation: 'slideUp 0.38s cubic-bezier(0.22,1,0.36,1) both' }}>
         <div style={{ display: 'flex', justifyContent: 'center', padding: '14px 0 8px' }}>
           <div style={{ width: 40, height: 4, borderRadius: 2, background: '#D1D1D6' }} />
         </div>
@@ -127,6 +127,11 @@ export default function Customers() {
 
   const totalValue = selected?.receipts.reduce((s, r) => s + parseFloat(String(r.total_amount || 0)), 0) ?? 0;
 
+  const cardAnim = (i: number): React.CSSProperties => ({
+    animation: `fadeUp 0.35s cubic-bezier(0.22,1,0.36,1) both`,
+    animationDelay: `${Math.min(i * 0.04, 0.28)}s`,
+  });
+
   return (
     <div style={{ background: '#F7F7F9', minHeight: '100vh', fontFamily: "-apple-system, 'SF Pro Display', BlinkMacSystemFont, sans-serif" }}>
 
@@ -156,6 +161,8 @@ export default function Customers() {
             background: 'linear-gradient(135deg, #1C1C1E 0%, #3A3A3C 100%)',
             borderRadius: 18, padding: '20px 24px', marginBottom: 20,
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            animation: 'fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) both',
+            animationDelay: '0.05s',
           }}>
             <div>
               <div style={{ fontSize: 13, color: '#8E8E93', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Customers</div>
@@ -168,7 +175,7 @@ export default function Customers() {
         )}
 
         {/* Search bar */}
-        <div style={{ position: 'relative', marginBottom: 20 }}>
+        <div style={{ position: 'relative', marginBottom: 20, animation: 'fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) both', animationDelay: '0.1s' }}>
           <svg style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#8E8E93' }}
             width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
@@ -230,7 +237,12 @@ export default function Customers() {
               background: '#fff', borderRadius: 16, padding: '14px 16px',
               boxShadow: '0 2px 12px rgba(0,0,0,0.05)',
               display: 'flex', alignItems: 'center', gap: 14,
-            }}>
+              transition: 'transform 0.22s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.22s ease',
+              ...cardAnim(i),
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 6px 20px rgba(0,0,0,0.1)'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = ''; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 2px 12px rgba(0,0,0,0.05)'; }}
+            >
               {/* Avatar — tap to open detail */}
               <div onClick={() => openCustomer(c.id)} style={{
                 width: 46, height: 46, borderRadius: 23,
@@ -288,8 +300,8 @@ export default function Customers() {
 
       {/* Delete confirm */}
       {deleteConfirm && selected && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-          <div style={{ background: '#fff', borderRadius: 20, padding: 28, width: '100%', maxWidth: 340, textAlign: 'center' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, animation: 'fadeIn 0.2s ease both' }}>
+          <div style={{ background: '#fff', borderRadius: 20, padding: 28, width: '100%', maxWidth: 340, textAlign: 'center', animation: 'scaleIn 0.3s cubic-bezier(0.34,1.56,0.64,1) both' }}>
             <div style={{ fontSize: 44, marginBottom: 12 }}>🗑️</div>
             <div style={{ fontSize: 18, fontWeight: 800, color: '#1C1C1E', marginBottom: 8 }}>Delete Customer?</div>
             <div style={{ fontSize: 14, color: '#8E8E93', marginBottom: 24, lineHeight: 1.6 }}>
@@ -307,9 +319,9 @@ export default function Customers() {
 
       {/* Customer detail bottom sheet */}
       {selected && !showEdit && !deleteConfirm && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }}
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 200, display: 'flex', alignItems: 'flex-end', animation: 'fadeIn 0.2s ease both' }}
           onClick={() => setSelected(null)}>
-          <div style={{ background: '#F2F2F7', borderRadius: '24px 24px 0 0', width: '100%', maxHeight: '88vh', overflow: 'auto', paddingBottom: 40 }}
+          <div style={{ background: '#F2F2F7', borderRadius: '24px 24px 0 0', width: '100%', maxHeight: '88vh', overflow: 'auto', paddingBottom: 40, animation: 'slideUp 0.38s cubic-bezier(0.22,1,0.36,1) both' }}
             onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'center', padding: '14px 0 8px' }}>
               <div style={{ width: 40, height: 4, borderRadius: 2, background: '#D1D1D6' }} />
