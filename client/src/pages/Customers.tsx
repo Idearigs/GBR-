@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { searchCustomers, getCustomer } from '../api';
+import { searchCustomers, getCustomer, updateCustomer, deleteCustomer } from '../api';
 
 interface Customer {
   id: string;
@@ -30,6 +30,11 @@ export default function Customers() {
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<CustomerDetail | null>(null);
   const [modalLoading, setModalLoading] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState({ name: '', phone: '', address: '' });
+  const [saving, setSaving] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const doSearch = useCallback(async (q: string) => {
     setLoading(true);
@@ -58,6 +63,34 @@ export default function Customers() {
   };
 
   const totalValue = selected?.receipts.reduce((s, r) => s + parseFloat(String(r.total_amount || 0)), 0) ?? 0;
+
+  const startEdit = () => {
+    if (!selected) return;
+    setEditForm({ name: selected.name || '', phone: selected.phone || '', address: selected.address || '' });
+    setEditing(true);
+  };
+
+  const handleSave = async () => {
+    if (!selected) return;
+    setSaving(true);
+    try {
+      const updated = await updateCustomer(selected.id, editForm);
+      setSelected({ ...selected, ...updated });
+      setEditing(false);
+      doSearch(search);
+    } catch { /* ignore */ } finally { setSaving(false); }
+  };
+
+  const handleDelete = async () => {
+    if (!selected) return;
+    setDeleting(true);
+    try {
+      await deleteCustomer(selected.id);
+      setSelected(null);
+      setDeleteConfirm(false);
+      doSearch(search);
+    } catch { /* ignore */ } finally { setDeleting(false); }
+  };
 
   return (
     <div style={{ background: '#F2F2F7', minHeight: '100vh', fontFamily: "-apple-system, 'SF Pro Display', BlinkMacSystemFont, sans-serif" }}>
@@ -184,6 +217,30 @@ export default function Customers() {
         </div>
       </div>
 
+      {/* Delete confirm modal */}
+      {deleteConfirm && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <div style={{ background: '#fff', borderRadius: 20, padding: 28, width: '100%', maxWidth: 340, textAlign: 'center' }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>🗑</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: '#1C1C1E', marginBottom: 8 }}>Delete Customer?</div>
+            <div style={{ fontSize: 14, color: '#8E8E93', marginBottom: 24, lineHeight: 1.5 }}>
+              This will permanently delete <strong>{selected?.name}</strong> and unlink their receipts. This cannot be undone.
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => setDeleteConfirm(false)} style={{
+                flex: 1, padding: '14px', borderRadius: 12, border: 'none',
+                background: '#F2F2F7', fontSize: 15, fontWeight: 600, cursor: 'pointer',
+              }}>Cancel</button>
+              <button onClick={handleDelete} disabled={deleting} style={{
+                flex: 1, padding: '14px', borderRadius: 12, border: 'none',
+                background: '#FF3B30', color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer',
+                opacity: deleting ? 0.7 : 1,
+              }}>{deleting ? 'Deleting...' : 'Delete'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Customer detail bottom sheet */}
       {selected && (
         <div
@@ -216,18 +273,54 @@ export default function Customers() {
                     }}>
                       {selected.name.charAt(0).toUpperCase()}
                     </div>
-                    <div>
+                    <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 22, fontWeight: 800, color: '#1C1C1E' }}>{selected.name}</div>
                       {selected.phone && (
                         <div style={{ fontSize: 14, color: '#8E8E93', marginTop: 3 }}>{selected.phone}</div>
                       )}
                     </div>
+                    {/* Edit / Delete buttons */}
+                    {!editing && (
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button onClick={startEdit} style={{
+                          background: '#F2F2F7', border: 'none', borderRadius: 10,
+                          padding: '8px 14px', fontSize: 13, fontWeight: 600, color: '#007AFF', cursor: 'pointer',
+                        }}>Edit</button>
+                        <button onClick={() => setDeleteConfirm(true)} style={{
+                          background: '#FFF0F0', border: 'none', borderRadius: 10,
+                          padding: '8px 14px', fontSize: 13, fontWeight: 600, color: '#FF3B30', cursor: 'pointer',
+                        }}>Delete</button>
+                      </div>
+                    )}
                   </div>
 
-                  {selected.address && (
-                    <div style={{ fontSize: 13, color: '#6b7280', lineHeight: 1.6, background: '#F9F9F9', borderRadius: 10, padding: '10px 14px', marginBottom: 14 }}>
-                      {selected.address}
+                  {/* Edit form */}
+                  {editing ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
+                      <input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
+                        placeholder="Full name" style={{ padding: '12px 14px', borderRadius: 10, border: '1.5px solid #E5E5EA', fontSize: 15, outline: 'none' }} />
+                      <input value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))}
+                        placeholder="Phone number" style={{ padding: '12px 14px', borderRadius: 10, border: '1.5px solid #E5E5EA', fontSize: 15, outline: 'none' }} />
+                      <textarea value={editForm.address} onChange={e => setEditForm(f => ({ ...f, address: e.target.value }))}
+                        placeholder="Address" rows={3} style={{ padding: '12px 14px', borderRadius: 10, border: '1.5px solid #E5E5EA', fontSize: 15, outline: 'none', resize: 'none' }} />
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button onClick={() => setEditing(false)} style={{
+                          flex: 1, padding: '12px', borderRadius: 10, border: 'none',
+                          background: '#F2F2F7', fontSize: 15, fontWeight: 600, color: '#1C1C1E', cursor: 'pointer',
+                        }}>Cancel</button>
+                        <button onClick={handleSave} disabled={saving || !editForm.name.trim()} style={{
+                          flex: 2, padding: '12px', borderRadius: 10, border: 'none',
+                          background: '#007AFF', fontSize: 15, fontWeight: 700, color: '#fff', cursor: 'pointer',
+                          opacity: saving ? 0.7 : 1,
+                        }}>{saving ? 'Saving...' : 'Save Changes'}</button>
+                      </div>
                     </div>
+                  ) : (
+                    selected.address && (
+                      <div style={{ fontSize: 13, color: '#6b7280', lineHeight: 1.6, background: '#F9F9F9', borderRadius: 10, padding: '10px 14px', marginBottom: 14 }}>
+                        {selected.address}
+                      </div>
+                    )
                   )}
 
                   {/* Stats */}

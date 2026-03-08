@@ -116,6 +116,18 @@ export const sendRangeReport = async (from: string, to: string) => {
   return data;
 };
 
+export const updateCustomer = async (id: string, body: { name: string; phone: string; address: string }) => {
+  const r = await fetch(`${BASE}/customers/${id}`, { method: 'PUT', headers: headers(), body: JSON.stringify(body) });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error);
+  return data;
+};
+
+export const deleteCustomer = async (id: string) => {
+  const r = await fetch(`${BASE}/customers/${id}`, { method: 'DELETE', headers: headers() });
+  if (!r.ok) throw new Error('Delete failed');
+};
+
 export const searchCustomers = async (search: string) => {
   const r = await fetch(`${BASE}/customers?search=${encodeURIComponent(search)}`, { headers: headers() });
   const data = await r.json();
