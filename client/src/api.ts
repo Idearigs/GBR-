@@ -116,6 +116,13 @@ export const sendRangeReport = async (from: string, to: string) => {
   return data;
 };
 
+export const createCustomer = async (body: { name: string; phone: string; address: string }) => {
+  const r = await fetch(`${BASE}/customers`, { method: 'POST', headers: headers(), body: JSON.stringify(body) });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error);
+  return data;
+};
+
 export const updateCustomer = async (id: string, body: { name: string; phone: string; address: string }) => {
   const r = await fetch(`${BASE}/customers/${id}`, { method: 'PUT', headers: headers(), body: JSON.stringify(body) });
   const data = await r.json();

@@ -59,6 +59,22 @@ router.put('/:id', async (req, res) => {
   }
 });
 
+// POST /api/customers
+router.post('/', async (req, res) => {
+  try {
+    const { name, phone, address } = req.body;
+    if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required' });
+    const cleanPhone = phone ? phone.replace(/[\s\-().]/g, '') : null;
+    const { rows } = await pool.query(
+      'INSERT INTO customers (name, phone, address) VALUES ($1,$2,$3) RETURNING *',
+      [name.trim(), cleanPhone || null, address || null]
+    );
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // DELETE /api/customers/:id
 router.delete('/:id', async (req, res) => {
   try {
