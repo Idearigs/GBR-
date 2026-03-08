@@ -22,7 +22,7 @@ const normalise = (raw) => {
       const { rows } = await pool.query(`
         INSERT INTO customers (name, phone, address)
         VALUES ($1, $2, $3)
-        ON CONFLICT (phone) WHERE phone IS NOT NULL AND phone != ''
+        ON CONFLICT (phone) WHERE phone IS NOT NULL AND phone <> ''
         DO UPDATE SET name = EXCLUDED.name, updated_at = NOW()
         RETURNING (xmax = 0) AS inserted
       `, [c.name.trim(), phone || null, null]);

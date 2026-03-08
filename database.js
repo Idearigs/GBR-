@@ -59,7 +59,7 @@ const initDb = async () => {
     `);
     await client.query(`
       CREATE UNIQUE INDEX IF NOT EXISTS customers_phone_idx
-      ON customers(phone) WHERE phone IS NOT NULL AND phone != '';
+      ON customers(phone) WHERE phone IS NOT NULL AND phone <> '';
     `);
     await client.query(`
       ALTER TABLE receipts ADD COLUMN IF NOT EXISTS customer_id UUID REFERENCES customers(id);

@@ -72,7 +72,7 @@ router.post('/bulk', async (req, res) => {
         await pool.query(`
           INSERT INTO customers (name, phone, address)
           VALUES ($1,$2,$3)
-          ON CONFLICT (phone) WHERE phone IS NOT NULL AND phone != ''
+          ON CONFLICT (phone) WHERE phone IS NOT NULL AND phone <> ''
           DO UPDATE SET name = EXCLUDED.name, updated_at = NOW()
         `, [c.name.trim(), cleanPhone || null, c.address || null]);
         inserted++;
