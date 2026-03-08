@@ -11,6 +11,10 @@ const reportsRouter = require('./routes/reports');
 const app = express();
 const PORT = process.env.PORT || 3100;
 
+console.log('[Config] VOODOO_API_KEY:', process.env.VOODOO_API_KEY ? `SET (${process.env.VOODOO_API_KEY.slice(0, 6)}...)` : 'NOT SET');
+console.log('[Config] VOODOO_SENDER:', process.env.VOODOO_SENDER || 'NOT SET');
+console.log('[Config] APP_URL:', process.env.APP_URL || 'NOT SET');
+
 app.use(cors());
 app.use(express.json({ limit: '15mb' }));
 app.use(express.urlencoded({ extended: true, limit: '15mb' }));
