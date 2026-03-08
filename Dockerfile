@@ -20,6 +20,8 @@ COPY server.js .
 COPY database.js .
 COPY middleware/ ./middleware/
 COPY routes/ ./routes/
+COPY scripts/ ./scripts/
+COPY customer-import-data.json ./
 
 # Copy built React app from stage 1
 COPY --from=client-build /app/client/dist ./client/dist
