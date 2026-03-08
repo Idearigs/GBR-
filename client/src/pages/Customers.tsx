@@ -7,7 +7,7 @@ interface Customer {
   name: string;
   phone: string;
   address: string;
-  created_at: string;
+  created_at?: string;
 }
 
 interface CustomerDetail extends Customer {
