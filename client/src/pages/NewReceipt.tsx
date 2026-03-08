@@ -65,12 +65,12 @@ function StepFindCustomer({ onSelect, onNewCustomer }: {
       ) : (
         <div className="form-group">
           <input
-            type="search"
+            type="text"
             placeholder="Search by name or phone..."
             value={q}
             onChange={e => { setQ(e.target.value); setSelected(null); }}
-            autoFocus
-            style={{ fontSize: 17 }}
+            autoComplete="off"
+            style={{ fontSize: 17, width: '100%', boxSizing: 'border-box' }}
           />
           {searching && <div style={{ fontSize: 13, color: 'var(--grey)', padding: '6px 4px' }}>Searching...</div>}
           {results.length > 0 && (
