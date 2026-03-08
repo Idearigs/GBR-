@@ -126,15 +126,11 @@ export default function Dashboard() {
       <div className="topbar">
         <h1>McCulloch — GBR</h1>
         <div className="topbar-actions">
-          <button className="btn btn-ghost" style={{ minHeight: 0, padding: '6px 14px', fontSize: 15, fontWeight: 600 }} onClick={() => navigate('/manage')}>
-            All Receipts
-          </button>
-          <button className="btn btn-ghost" style={{ minHeight: 0, padding: '6px 14px', fontSize: 15, fontWeight: 600 }} onClick={() => navigate('/customers')}>
-            Customers
-          </button>
-          <button className="btn btn-ghost" style={{ minHeight: 0, padding: '6px 10px', fontSize: 15, color: 'var(--danger)' }} onClick={logout}>
-            Logout
-          </button>
+          <div className="nav-pill-group">
+            <button className="nav-pill" onClick={() => navigate('/manage')}>Receipts</button>
+            <button className="nav-pill" onClick={() => navigate('/customers')}>Customers</button>
+          </div>
+          <button className="nav-logout" onClick={logout}>Logout</button>
         </div>
       </div>
 
