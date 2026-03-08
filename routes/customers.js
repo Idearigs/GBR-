@@ -59,6 +59,31 @@ router.put('/:id', async (req, res) => {
   }
 });
 
+// POST /api/customers/bulk  — import array of customers
+router.post('/bulk', async (req, res) => {
+  try {
+    const { customers } = req.body;
+    if (!Array.isArray(customers)) return res.status(400).json({ error: 'customers must be an array' });
+    let inserted = 0, skipped = 0;
+    for (const c of customers) {
+      if (!c.name || !c.name.trim()) { skipped++; continue; }
+      const cleanPhone = c.phone ? c.phone.replace(/[\s\-().]/g, '') : null;
+      try {
+        await pool.query(`
+          INSERT INTO customers (name, phone, address)
+          VALUES ($1,$2,$3)
+          ON CONFLICT (phone) WHERE phone IS NOT NULL AND phone != ''
+          DO UPDATE SET name = EXCLUDED.name, updated_at = NOW()
+        `, [c.name.trim(), cleanPhone || null, c.address || null]);
+        inserted++;
+      } catch { skipped++; }
+    }
+    res.json({ inserted, skipped, total: customers.length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /api/customers
 router.post('/', async (req, res) => {
   try {
