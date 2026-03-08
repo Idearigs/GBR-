@@ -19,8 +19,12 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
 
-// Helper: format receipt_no
-const padReceiptNo = (n) => String(n).padStart(4, '0');
+// Helper: generate timestamp receipt_no (YYYYMMDDHHMM)
+const makeReceiptNo = () => {
+  const n = new Date();
+  return `${n.getFullYear()}${String(n.getMonth()+1).padStart(2,'0')}${String(n.getDate()).padStart(2,'0')}${String(n.getHours()).padStart(2,'0')}${String(n.getMinutes()).padStart(2,'0')}`;
+};
+const padReceiptNo = (n) => String(n); // kept for SMS/display — no padding needed for timestamp format
 
 // GET /api/public/receipt/:token  — no auth, public
 router.get('/public/:token', async (req, res) => {
@@ -112,25 +116,31 @@ router.get('/export', async (req, res) => {
     if (date_from) { conditions.push(`date >= $${params.length + 1}`); params.push(date_from); }
     if (date_to) { conditions.push(`date <= $${params.length + 1}`); params.push(date_to); }
     const where = conditions.length ? ' WHERE ' + conditions.join(' AND ') : '';
-    const { rows } = await pool.query('SELECT * FROM receipts' + where + ' ORDER BY receipt_no ASC', params);
-    const headers = ['Receipt No', 'Date', 'Customer Name', 'Address', 'Phone', 'Items', 'Total (£)', 'Status'];
+    const { rows } = await pool.query('SELECT * FROM receipts' + where + ' ORDER BY created_at ASC', params);
+
+    const headers = ['Receipt No', 'Date', 'Customer Name', 'Address', 'Phone', 'Payment Method', 'Items', 'Total (£)', 'Status'];
     const csvRows = rows.map(r => [
-      padReceiptNo(r.receipt_no),
+      r.receipt_no || '',
       r.date ? new Date(r.date).toLocaleDateString('en-GB') : '',
       r.customer_name || '',
       (r.customer_address || '').replace(/\n/g, ' '),
       r.customer_phone || '',
-      Array.isArray(r.items) ? r.items.map(i => `${i.qty}x ${i.description}`).join(' | ') : '',
+      r.payment_method || 'cash',
+      Array.isArray(r.items) ? r.items.filter(i => i.description).map(i => `${i.qty}x ${i.description} (£${i.pounds}.${String(i.pence).padStart(2,'0')})`).join(' | ') : '',
       r.total_amount ? parseFloat(r.total_amount).toFixed(2) : '0.00',
       r.status || '',
     ]);
 
-    const csv = [headers, ...csvRows]
+    const csv = '\uFEFF' + [headers, ...csvRows]
       .map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
       .join('\r\n');
 
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename="receipts-${Date.now()}.csv"`);
+    const from = date_from || 'all';
+    const to = date_to || 'all';
+    const filename = `McCulloch-GBR-${from}-to-${to}.csv`;
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.send(csv);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -155,10 +165,12 @@ router.post('/', async (req, res) => {
     const { customer_name, customer_address, customer_phone, date, items, total_amount, notes, payment_method } = req.body;
     const public_token = crypto.randomBytes(32).toString('hex');
 
+    const receiptNo = makeReceiptNo();
     const { rows } = await pool.query(
-      `INSERT INTO receipts (customer_name, customer_address, customer_phone, date, items, total_amount, notes, public_token, status, payment_method)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'draft',$9) RETURNING *`,
+      `INSERT INTO receipts (receipt_no, customer_name, customer_address, customer_phone, date, items, total_amount, notes, public_token, status, payment_method)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'draft',$10) RETURNING *`,
       [
+        receiptNo,
         customer_name || '',
         customer_address || '',
         customer_phone || '',

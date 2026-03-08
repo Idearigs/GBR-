@@ -82,7 +82,9 @@ export default function Dashboard() {
     const blob = await r.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = `receipts-${Date.now()}.csv`; a.click();
+    const from = dateFrom || 'all';
+    const to = dateTo || 'all';
+    a.href = url; a.download = `McCulloch-GBR-${from}-to-${to}.csv`; a.click();
     URL.revokeObjectURL(url);
   };
 

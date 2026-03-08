@@ -46,6 +46,20 @@ const initDb = async () => {
       ADD COLUMN IF NOT EXISTS payment_method VARCHAR(10) DEFAULT 'cash';
     `);
 
+    // Migrate receipt_no from SERIAL integer → YYYYMMDDHHMM varchar timestamp
+    const { rows: colInfo } = await client.query(`
+      SELECT data_type FROM information_schema.columns
+      WHERE table_name = 'receipts' AND column_name = 'receipt_no'
+    `);
+    if (colInfo[0]?.data_type === 'integer') {
+      await client.query(`ALTER TABLE receipts ALTER COLUMN receipt_no DROP DEFAULT`);
+      await client.query(`
+        ALTER TABLE receipts ALTER COLUMN receipt_no TYPE VARCHAR(12)
+        USING TO_CHAR(created_at, 'YYYYMMDDHH24MI')
+      `);
+      console.log('Migrated receipt_no to timestamp format');
+    }
+
     console.log('Database initialised');
   } catch (err) {
     console.error('DB init error:', err);
