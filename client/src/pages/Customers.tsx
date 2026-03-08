@@ -128,18 +128,18 @@ export default function Customers() {
   const totalValue = selected?.receipts.reduce((s, r) => s + parseFloat(String(r.total_amount || 0)), 0) ?? 0;
 
   return (
-    <div style={{ background: '#F2F2F7', minHeight: '100vh', fontFamily: "-apple-system, 'SF Pro Display', BlinkMacSystemFont, sans-serif" }}>
+    <div style={{ background: '#F7F7F9', minHeight: '100vh', fontFamily: "-apple-system, 'SF Pro Display', BlinkMacSystemFont, sans-serif" }}>
 
       {/* Topbar */}
       <div style={{
-        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-        background: 'rgba(255,255,255,0.88)', backdropFilter: 'blur(20px)',
-        borderBottom: '1px solid rgba(60,60,67,0.1)',
+        position: 'sticky', top: 0, zIndex: 100,
+        background: '#ffffff',
+        borderBottom: '1px solid rgba(0,0,0,0.07)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 20px', height: 56,
+        padding: '0 20px', height: 58,
       }}>
-        <button onClick={() => navigate('/')} style={{ background: 'none', border: 'none', color: '#007AFF', fontSize: 15, fontWeight: 600, cursor: 'pointer', padding: '8px 0' }}>
-          ← Dashboard
+        <button onClick={() => navigate('/')} style={{ background: 'none', border: 'none', color: '#007AFF', fontSize: 14, fontWeight: 600, cursor: 'pointer', padding: '8px 0' }}>
+          ← Back
         </button>
         <span style={{ fontSize: 17, fontWeight: 700, color: '#1C1C1E' }}>Customers</span>
         <button onClick={() => setShowAdd(true)} style={{

@@ -127,7 +127,7 @@ export default function Dashboard() {
         <h1>McCulloch — GBR</h1>
         <div className="topbar-actions">
           <div className="nav-pill-group">
-            <button className="nav-pill" onClick={() => navigate('/manage')}>Receipts</button>
+            <button className="nav-pill active" onClick={() => navigate('/manage')}>Receipts</button>
             <button className="nav-pill" onClick={() => navigate('/customers')}>Customers</button>
           </div>
           <button className="nav-logout" onClick={logout}>Logout</button>
