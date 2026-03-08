@@ -143,19 +143,16 @@ export default function Dashboard() {
         {/* Stat Cards */}
         <div className="dashboard-stats">
           <div className="stat-card stat-card-navy">
-            <div className="stat-icon-wrap">🧾</div>
-            <div className="stat-value">{allCount}</div>
             <div className="stat-label">Receipts</div>
+            <div className="stat-value">{allCount}</div>
           </div>
           <div className="stat-card stat-card-gold">
-            <div className="stat-icon-wrap">💷</div>
-            <div className="stat-value">£{allTotal.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
             <div className="stat-label">Total Value</div>
+            <div className="stat-value">£{allTotal.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
           </div>
           <div className="stat-card stat-card-green">
-            <div className="stat-icon-wrap">📅</div>
-            <div className="stat-value">£{monthTotal.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
             <div className="stat-label">This Month</div>
+            <div className="stat-value">£{monthTotal.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
           </div>
         </div>
 
