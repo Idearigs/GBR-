@@ -143,9 +143,21 @@ function StepFindCustomer({ onSelect, onNewCustomer }: {
       )}
 
       <div style={{ marginTop: 'auto', paddingTop: 24, borderTop: '1px solid var(--border)' }}>
-        <p style={{ fontSize: 14, color: 'var(--grey)', textAlign: 'center', marginBottom: 12 }}>New or walk-in customer?</p>
-        <button className="btn btn-outline btn-full" onClick={onNewCustomer}>
-          + Add New Customer
+        <button
+          className="btn btn-full"
+          onClick={onNewCustomer}
+          style={{
+            background: '#F2F2F7', border: 'none', borderRadius: 14,
+            padding: '18px 20px', cursor: 'pointer', textAlign: 'left',
+            display: 'flex', alignItems: 'center', gap: 14,
+          }}
+        >
+          <span style={{ fontSize: 32 }}>🚶</span>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--dark)' }}>New or walk-in customer</div>
+            <div style={{ fontSize: 13, color: 'var(--grey)', marginTop: 2 }}>Not in the system yet? Add them now</div>
+          </div>
+          <span style={{ marginLeft: 'auto', fontSize: 20, color: 'var(--grey)' }}>→</span>
         </button>
       </div>
     </div>
