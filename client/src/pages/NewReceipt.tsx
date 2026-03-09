@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createReceipt, updateReceipt, sendSMS, uploadIdImage, getIdImageUrl, searchCustomers } from '../api';
+import { createReceipt, updateReceipt, sendSMS, uploadIdImage, getIdImageUrl, searchCustomers, updateCustomer } from '../api';
 import type { ReceiptItem } from '../types';
 
 type Step = 'find-customer' | 'new-customer' | 'receipt' | 'id' | 'items' | 'sign' | 'done';
@@ -29,6 +29,8 @@ function StepFindCustomer({ onSelect, onNewCustomer }: {
   const [results, setResults] = useState<Array<{ id: string; name: string; phone: string; address: string }>>([]);
   const [searching, setSearching] = useState(false);
   const [selected, setSelected] = useState<{ id: string; name: string; phone: string; address: string } | null>(null);
+  const [addressDraft, setAddressDraft] = useState('');
+  const [savingAddress, setSavingAddress] = useState(false);
 
   useEffect(() => {
     if (!q.trim()) { setResults([]); return; }
@@ -39,6 +41,25 @@ function StepFindCustomer({ onSelect, onNewCustomer }: {
     }, 300);
     return () => clearTimeout(t);
   }, [q]);
+
+  const handleSelect = (c: { id: string; name: string; phone: string; address: string }) => {
+    setSelected(c);
+    setAddressDraft('');
+    setResults([]);
+  };
+
+  const handleSaveAndContinue = async () => {
+    if (!selected) return;
+    setSavingAddress(true);
+    try {
+      await updateCustomer(selected.id, { name: selected.name, phone: selected.phone, address: addressDraft });
+    } catch { /* proceed anyway */ } finally {
+      setSavingAddress(false);
+    }
+    onSelect({ ...selected, address: addressDraft });
+  };
+
+  const needsAddress = selected && !selected.address;
 
   return (
     <div className="page" style={{ display: 'flex', flexDirection: 'column', minHeight: '70vh' }}>
@@ -58,9 +79,40 @@ function StepFindCustomer({ onSelect, onNewCustomer }: {
             </div>
             <button onClick={() => { setSelected(null); setQ(''); }} style={{ background: 'none', border: 'none', color: 'var(--grey)', fontSize: 20, cursor: 'pointer', padding: 4 }}>✕</button>
           </div>
-          <button className="btn btn-primary btn-full mt-16" onClick={() => onSelect(selected)}>
-            Continue with {selected.name.split(' ')[0]} →
-          </button>
+
+          {needsAddress && (
+            <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(0,0,0,0.08)' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--dark)', marginBottom: 6 }}>
+                📍 No address on file — please add one:
+              </div>
+              <textarea
+                placeholder="Street, City, Postcode"
+                value={addressDraft}
+                onChange={e => setAddressDraft(e.target.value)}
+                style={{ width: '100%', boxSizing: 'border-box', fontSize: 15, minHeight: 80, borderRadius: 10, border: '1.5px solid var(--border)', padding: '10px 12px', resize: 'vertical' }}
+              />
+              <button
+                className="btn btn-primary btn-full mt-12"
+                onClick={handleSaveAndContinue}
+                disabled={savingAddress || !addressDraft.trim()}
+              >
+                {savingAddress ? 'Saving...' : `Save & Continue with ${selected.name.split(' ')[0]} →`}
+              </button>
+              <button
+                className="btn btn-ghost btn-full"
+                style={{ marginTop: 8, color: 'var(--grey)', fontSize: 14 }}
+                onClick={() => onSelect(selected)}
+              >
+                Skip address
+              </button>
+            </div>
+          )}
+
+          {!needsAddress && (
+            <button className="btn btn-primary btn-full mt-16" onClick={() => onSelect(selected)}>
+              Continue with {selected.name.split(' ')[0]} →
+            </button>
+          )}
         </div>
       ) : (
         <div className="form-group">
@@ -76,7 +128,7 @@ function StepFindCustomer({ onSelect, onNewCustomer }: {
           {results.length > 0 && (
             <div style={{ background: '#fff', borderRadius: 12, marginTop: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.12)', overflow: 'hidden', maxHeight: 320, overflowY: 'auto' }}>
               {results.map(c => (
-                <div key={c.id} onClick={() => { setSelected(c); setResults([]); }}
+                <div key={c.id} onClick={() => handleSelect(c)}
                   style={{ padding: '14px 16px', borderBottom: '1px solid #F2F2F7', cursor: 'pointer' }}>
                   <div style={{ fontWeight: 700, fontSize: 16 }}>{c.name}</div>
                   {c.phone && <div style={{ fontSize: 13, color: '#8E8E93', marginTop: 2 }}>{c.phone}</div>}
@@ -103,11 +155,29 @@ function StepFindCustomer({ onSelect, onNewCustomer }: {
 // ──────────────────────────────────────────────────────
 // Step 1 — Owner: fill in new customer details
 // ──────────────────────────────────────────────────────
-function StepNewCustomer({ name, phone, address, onChange, onNext, onBack }: {
+function StepNewCustomer({ name, phone, address, onChange, onNext, onBack, onSelectExisting }: {
   name: string; phone: string; address: string;
   onChange: (f: string, v: string) => void;
   onNext: () => void; onBack: () => void;
+  onSelectExisting: (c: { id: string; name: string; phone: string; address: string }) => void;
 }) {
+  const [dupCustomer, setDupCustomer] = useState<{ id: string; name: string; phone: string; address: string } | null>(null);
+
+  useEffect(() => {
+    const trimmed = phone.trim();
+    if (!trimmed || trimmed.length < 7) { setDupCustomer(null); return; }
+    const t = setTimeout(async () => {
+      try {
+        const res = await searchCustomers(trimmed);
+        const exact = res.data.find((c: { phone: string }) =>
+          c.phone && c.phone.replace(/\s/g, '') === trimmed.replace(/\s/g, '')
+        );
+        setDupCustomer(exact || null);
+      } catch { setDupCustomer(null); }
+    }, 500);
+    return () => clearTimeout(t);
+  }, [phone]);
+
   return (
     <div className="page">
       <button className="btn btn-ghost" style={{ padding: '8px 0', marginBottom: 20 }} onClick={onBack}>← Back</button>
@@ -133,6 +203,47 @@ function StepNewCustomer({ name, phone, address, onChange, onNext, onBack }: {
       <button className="btn btn-primary btn-full btn-lg mt-16" onClick={onNext} disabled={!name.trim()}>
         Continue →
       </button>
+
+      {/* Duplicate phone popup */}
+      {dupCustomer && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000,
+          display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+          animation: 'fadeIn 0.2s ease both',
+        }}>
+          <div style={{
+            background: '#fff', borderRadius: '20px 20px 0 0', padding: '28px 24px 36px',
+            width: '100%', maxWidth: 480,
+            animation: 'slideUp 0.3s cubic-bezier(0.22,1,0.36,1) both',
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: 20 }}>
+              <div style={{ fontSize: 44, marginBottom: 10 }}>⚠️</div>
+              <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>Customer already exists</h3>
+              <p style={{ color: 'var(--grey)', fontSize: 15 }}>
+                This phone number is registered to:
+              </p>
+              <div style={{ marginTop: 12, background: '#F2F2F7', borderRadius: 12, padding: '12px 16px' }}>
+                <div style={{ fontSize: 18, fontWeight: 700 }}>{dupCustomer.name}</div>
+                <div style={{ fontSize: 14, color: 'var(--grey)', marginTop: 3 }}>{dupCustomer.phone}</div>
+                {dupCustomer.address && <div style={{ fontSize: 13, color: 'var(--grey)', marginTop: 2 }}>{dupCustomer.address.split('\n')[0]}</div>}
+              </div>
+            </div>
+            <button
+              className="btn btn-primary btn-full btn-lg"
+              onClick={() => onSelectExisting(dupCustomer)}
+            >
+              Continue with {dupCustomer.name.split(' ')[0]} →
+            </button>
+            <button
+              className="btn btn-ghost btn-full"
+              style={{ marginTop: 10, color: 'var(--grey)' }}
+              onClick={() => setDupCustomer(null)}
+            >
+              Add as new customer anyway
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -838,6 +949,7 @@ export default function NewReceipt() {
           onChange={handleCustomerChange}
           onNext={() => setStep('receipt')}
           onBack={() => setStep('find-customer')}
+          onSelectExisting={c => { setCustomer({ name: c.name, phone: c.phone || '', address: c.address || '' }); setStep('receipt'); }}
         />
       )}
       {step === 'receipt' && (
