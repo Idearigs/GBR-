@@ -2,6 +2,9 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
+import { initErrorReporter } from './error-reporter';
+
+initErrorReporter('McCulloch-GBR');
 
 // Register service worker for PWA
 if ('serviceWorker' in navigator) {
