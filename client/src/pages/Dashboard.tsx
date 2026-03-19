@@ -39,12 +39,14 @@ export default function Dashboard() {
       if (dateTo) params.set('date_to', dateTo);
       const token = localStorage.getItem('gbr_token');
       const r = await fetch(`/api/receipts?${params}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (r.status === 401) { logout(); return; }
       const data = await r.json();
-      setReceipts(data.receipts.slice(0, 20));
-      setFilteredTotal(data.receipts.reduce((s: number, rc: Receipt) => s + parseFloat(String(rc.total_amount || 0)), 0));
+      const list: Receipt[] = Array.isArray(data.receipts) ? data.receipts : [];
+      setReceipts(list.slice(0, 20));
+      setFilteredTotal(list.reduce((s: number, rc: Receipt) => s + parseFloat(String(rc.total_amount || 0)), 0));
       if (!dateFrom && !dateTo) {
-        setAllCount(data.total);
-        setAllTotal(data.receipts.reduce((s: number, rc: Receipt) => s + parseFloat(String(rc.total_amount || 0)), 0));
+        setAllCount(data.total ?? list.length);
+        setAllTotal(list.reduce((s: number, rc: Receipt) => s + parseFloat(String(rc.total_amount || 0)), 0));
       }
     } catch (e: any) {
       toast.show(e.message, 'error');
@@ -57,8 +59,10 @@ export default function Dashboard() {
     try {
       const token = localStorage.getItem('gbr_token');
       const r = await fetch(`/api/receipts?page=1&limit=200&date_from=${thisMonthStr}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (r.status === 401) { logout(); return 0; }
       const data = await r.json();
-      return data.receipts.reduce((s: number, rc: Receipt) => s + parseFloat(String(rc.total_amount || 0)), 0);
+      const list: Receipt[] = Array.isArray(data.receipts) ? data.receipts : [];
+      return list.reduce((s: number, rc: Receipt) => s + parseFloat(String(rc.total_amount || 0)), 0);
     } catch { return 0; }
   };
 

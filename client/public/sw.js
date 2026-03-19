@@ -1,5 +1,5 @@
-const CACHE = 'gbr-v1';
-const ASSETS = ['/', '/index.html', '/manifest.json'];
+const CACHE = 'gbr-v2';
+const ASSETS = ['/', '/index.html'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
@@ -14,14 +14,21 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // API calls — network only
+  // Only handle GET requests — POST and others cannot be cached
+  if (e.request.method !== 'GET') return;
+  // API calls — always network only, no caching
   if (e.request.url.includes('/api/')) return;
+  // Skip chrome-extension and non-http(s) URLs
+  if (!e.request.url.startsWith('http')) return;
 
   e.respondWith(
     fetch(e.request)
       .then(res => {
-        const clone = res.clone();
-        caches.open(CACHE).then(c => c.put(e.request, clone));
+        // Only cache successful same-origin responses (not Cloudflare redirects)
+        if (res.ok && res.type === 'basic') {
+          const clone = res.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
+        }
         return res;
       })
       .catch(() => caches.match(e.request))

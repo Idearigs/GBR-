@@ -31,8 +31,14 @@ app.use('/api/customers', customersRouter);
 
 // Serve React PWA in production
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, 'client/dist')));
+  // Hashed assets (JS/CSS) — long cache; index.html + sw.js — never cached
+  app.use(express.static(path.join(__dirname, 'client/dist'), { etag: false, maxAge: '1y', immutable: true }));
+  app.get('/sw.js', (req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    res.sendFile(path.join(__dirname, 'client/dist/sw.js'));
+  });
   app.get('*', (req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
     res.sendFile(path.join(__dirname, 'client/dist/index.html'));
   });
 }
