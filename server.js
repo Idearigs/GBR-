@@ -1,4 +1,5 @@
 require('dotenv').config();
+const Sentry = require('@sentry/node');
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -8,6 +9,11 @@ const authRouter = require('./routes/auth');
 const receiptsRouter = require('./routes/receipts');
 const reportsRouter = require('./routes/reports');
 const customersRouter = require('./routes/customers');
+
+Sentry.init({
+  dsn: 'https://ad9c131d72fb9602fe279b456a1e28b1@o4511162586759168.ingest.us.sentry.io/4511162654130176',
+  tracesSampleRate: 1.0,
+});
 
 const app = express();
 const PORT = process.env.PORT || 3100;
@@ -81,6 +87,9 @@ cron.schedule('0 2 * * *', async () => {
 const fs = require('fs');
 const uploadsDir = path.join(__dirname, 'uploads/ids');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+
+// Sentry error handler — must be after all routes
+Sentry.setupExpressErrorHandler(app);
 
 initDb()
   .then(() => app.listen(PORT, () => console.log(`GBR Server → http://localhost:${PORT}`)))
