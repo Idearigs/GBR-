@@ -13,6 +13,7 @@ const customersRouter = require('./routes/customers');
 Sentry.init({
   dsn: 'https://ad9c131d72fb9602fe279b456a1e28b1@o4511162586759168.ingest.us.sentry.io/4511162654130176',
   tracesSampleRate: 1.0,
+  integrations: [Sentry.expressIntegration()],
 });
 
 const app = express();
