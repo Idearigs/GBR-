@@ -1,6 +1,23 @@
 require('dotenv').config();
 const Sentry = require('@sentry/node');
+const { Logtail } = require('@logtail/node');
 const express = require('express');
+
+// Better Stack logging
+const logtail = new Logtail('Qsz52UHUWZ126xf88Re1sJrj');
+
+// Global error handlers — send crashes to Better Stack before exiting
+process.on('uncaughtException', (err) => {
+  logtail.error('Uncaught exception', { error: err.message, stack: err.stack });
+  logtail.flush().finally(() => process.exit(1));
+});
+
+process.on('unhandledRejection', (reason) => {
+  const message = reason instanceof Error ? reason.message : String(reason);
+  const stack = reason instanceof Error ? reason.stack : undefined;
+  logtail.error('Unhandled rejection', { error: message, stack });
+  logtail.flush().finally(() => process.exit(1));
+});
 const cors = require('cors');
 const path = require('path');
 const cron = require('node-cron');
