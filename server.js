@@ -106,9 +106,29 @@ const fs = require('fs');
 const uploadsDir = path.join(__dirname, 'uploads/ids');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
+// Log HTTP errors (4xx/5xx) to Better Stack
+app.use((err, req, res, next) => {
+  logtail.error('HTTP error', {
+    method: req.method,
+    path: req.path,
+    status: err.status || 500,
+    error: err.message,
+  });
+  next(err);
+});
+
 // Sentry error handler — must be after all routes
 Sentry.setupExpressErrorHandler(app);
 
 initDb()
-  .then(() => app.listen(PORT, () => console.log(`GBR Server → http://localhost:${PORT}`)))
-  .catch(err => { console.error('Failed to init DB:', err); process.exit(1); });
+  .then(() => app.listen(PORT, () => {
+    console.log(`GBR Server → http://localhost:${PORT}`);
+    logtail.info('GBR server started', { port: PORT, env: process.env.NODE_ENV || 'development' });
+    logtail.flush();
+  }))
+  .catch(err => {
+    logtail.error('Failed to init DB', { error: err.message });
+    logtail.flush().finally(() => process.exit(1));
+  });
+
+module.exports = { logtail };
