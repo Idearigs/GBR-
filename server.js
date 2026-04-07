@@ -44,6 +44,27 @@ app.use(cors());
 app.use(express.json({ limit: '15mb' }));
 app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 
+// Request logger — logs every API call to Better Stack
+app.use((req, res, next) => {
+  // Skip static assets (JS/CSS/images)
+  if (!req.path.startsWith('/api/')) return next();
+
+  const start = Date.now();
+  res.on('finish', () => {
+    const ms = Date.now() - start;
+    const level = res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info';
+    logtail[level](`${req.method} ${req.path}`, {
+      method: req.method,
+      path: req.path,
+      status: res.statusCode,
+      duration_ms: ms,
+      ip: req.headers['x-forwarded-for'] || req.socket.remoteAddress,
+      user_agent: req.headers['user-agent'],
+    });
+  });
+  next();
+});
+
 // API routes
 app.use('/api/auth', authRouter);
 app.use('/api/receipts', receiptsRouter);
@@ -70,12 +91,19 @@ if (process.env.NODE_ENV === 'production') {
 // Quarterly report — 1st of Jan, Apr, Jul, Oct at 9am
 cron.schedule('0 9 1 1,4,7,10 *', async () => {
   const { sendQuarterlyReport } = require('./routes/reports');
-  try { await sendQuarterlyReport(); }
-  catch (e) { console.error('Cron report failed:', e.message); }
+  logtail.info('Cron: quarterly report started');
+  try {
+    await sendQuarterlyReport();
+    logtail.info('Cron: quarterly report sent successfully');
+  } catch (e) {
+    console.error('Cron report failed:', e.message);
+    logtail.error('Cron: quarterly report failed', { error: e.message });
+  }
 });
 
 // GDPR retention — delete receipts + ID images older than 6 years, runs daily at 2am
 cron.schedule('0 2 * * *', async () => {
+  logtail.info('Cron: GDPR retention check started');
   try {
     const { pool } = require('./database');
     const cutoff = new Date();
@@ -84,7 +112,10 @@ cron.schedule('0 2 * * *', async () => {
       'SELECT id, id_image_url FROM receipts WHERE created_at < $1',
       [cutoff.toISOString()]
     );
-    if (!rows.length) return;
+    if (!rows.length) {
+      logtail.info('Cron: GDPR retention — no old records found');
+      return;
+    }
     const fs = require('fs');
     for (const r of rows) {
       if (r.id_image_url) {
@@ -96,8 +127,10 @@ cron.schedule('0 2 * * *', async () => {
     const ids = rows.map(r => r.id);
     await pool.query('DELETE FROM receipts WHERE id = ANY($1)', [ids]);
     console.log(`[GDPR] Deleted ${rows.length} receipts older than 6 years`);
+    logtail.info('Cron: GDPR retention complete', { deleted_count: rows.length });
   } catch (e) {
     console.error('GDPR retention cron failed:', e.message);
+    logtail.error('Cron: GDPR retention failed', { error: e.message });
   }
 });
 
